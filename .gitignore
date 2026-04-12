@@ -1,0 +1,44 @@
+# ============================
+# 환경설정 (비밀번호/키 포함)
+# ============================
+backend/src/main/resources/application.yml
+backend/src/main/resources/application-*.yml
+!backend/src/main/resources/application-example.yml
+
+# ============================
+# Java / Maven
+# ============================
+target/
+*.class
+*.jar
+*.war
+.mvn/wrapper/maven-wrapper.jar
+
+# ============================
+# Node / Vue
+# ============================
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+
+# ============================
+# IDE
+# ============================
+.idea/
+*.iml
+.vscode/
+*.suo
+*.user
+
+# ============================
+# OS
+# ============================
+.DS_Store
+Thumbs.db
+
+# ============================
+# Claude Code
+# ============================
+.claude/
+prompt.txt

@@ -1,0 +1,46 @@
+package com.baseball.recommend.domain.recommend;
+
+import com.baseball.recommend.domain.team.Team;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "recommend_result")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class RecommendResult {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private Long surveyResultId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "team_id", nullable = false)
+    private Team team;
+
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String reason;
+
+    @Column(nullable = false)
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+    }
+
+    @Builder
+    public RecommendResult(Long surveyResultId, Team team, String reason) {
+        this.surveyResultId = surveyResultId;
+        this.team = team;
+        this.reason = reason;
+    }
+}
