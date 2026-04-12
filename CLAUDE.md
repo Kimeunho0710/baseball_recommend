@@ -76,6 +76,15 @@ frontend/src/
 - 로딩 / 에러 상태 UI 처리
 - 링크 복사 버튼 (`navigator.clipboard`) + 복사 완료 피드백
 
+### 추천 정확도 강화 (Top 3 + 팬 성향 프로필)
+- **Top 3 적합도 분석**: 상위 3개 팀을 퍼센트 바 차트로 시각화 (팀 고유 색상)
+- **팀별 짧은 매칭 이유**: 설문 답변과 연결된 "왜 이 팀이 맞는지" 한 줄 설명
+- **팬 성향 프로필 6종**: 감성 몰입형 / 전략 분석형 / 열정 응원형 / 전통 중시형 / 도전 선호형 / 차분 관조형
+  - 설문 8개 차원 점수로 프로필 자동 판별
+  - 프로필 이모지 배지 + 상세 설명 제공
+- **DB 저장 확장**: `top3_json` (TEXT), `fan_profile`, `fan_profile_description` 컬럼 추가
+- **API 응답 확장**: `RecommendResponse`에 `top3`, `fanProfile`, `fanProfileDescription` 필드 추가
+
 ### KBO 순위 스크래핑
 - 대상 URL: https://www.koreabaseball.com/record/teamrank/teamrankdaily.aspx
 - 스크래핑 방식: Jsoup HTTP 요청 (브라우저 없음, Playwright 제거됨)

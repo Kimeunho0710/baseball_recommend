@@ -29,6 +29,15 @@ public class RecommendResult {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String reason;
 
+    @Column(columnDefinition = "TEXT")
+    private String top3Json;
+
+    @Column(length = 50)
+    private String fanProfile;
+
+    @Column(columnDefinition = "TEXT")
+    private String fanProfileDescription;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
@@ -38,9 +47,13 @@ public class RecommendResult {
     }
 
     @Builder
-    public RecommendResult(Long surveyResultId, Team team, String reason) {
+    public RecommendResult(Long surveyResultId, Team team, String reason,
+                           String top3Json, String fanProfile, String fanProfileDescription) {
         this.surveyResultId = surveyResultId;
         this.team = team;
         this.reason = reason;
+        this.top3Json = top3Json;
+        this.fanProfile = fanProfile;
+        this.fanProfileDescription = fanProfileDescription;
     }
 }

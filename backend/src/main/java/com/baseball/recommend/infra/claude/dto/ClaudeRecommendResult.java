@@ -1,18 +1,20 @@
 package com.baseball.recommend.infra.claude.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.baseball.recommend.domain.recommend.dto.TeamRankItem;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 public class ClaudeRecommendResult {
 
-    @JsonProperty("teamName")
     private String teamName;
-
-    @JsonProperty("reason")
     private String reason;
+    private List<TeamRankItem> top3;
+    private String fanProfile;
+    private String fanProfileDescription;
 }
