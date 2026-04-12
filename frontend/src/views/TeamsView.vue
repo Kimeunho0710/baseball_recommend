@@ -1,8 +1,13 @@
 <template>
   <div class="teams-page">
     <div class="teams-container">
-      <h1 class="page-title">KBO 10개 팀</h1>
-      <p class="page-subtitle">각 팀을 클릭해 자세한 정보를 확인하세요</p>
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">KBO 10개 팀</h1>
+          <p class="page-subtitle">각 팀을 클릭해 자세한 정보를 확인하세요</p>
+        </div>
+        <RouterLink to="/compare" class="compare-link">⚖️ 팀 비교하기</RouterLink>
+      </div>
 
       <div v-if="loading" class="loading">불러오는 중...</div>
       <div v-else-if="error" class="error">{{ error }}</div>
@@ -93,18 +98,40 @@ onMounted(async () => {
   margin: 0 auto;
 }
 
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
 .page-title {
   font-size: 2.2rem;
   font-weight: 800;
-  text-align: center;
   margin-bottom: 8px;
 }
 
 .page-subtitle {
-  text-align: center;
   color: #a8d8ea;
-  margin-bottom: 40px;
 }
+
+.compare-link {
+  display: inline-block;
+  padding: 10px 20px;
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 24px;
+  color: white;
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 600;
+  background: rgba(255,255,255,0.07);
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.compare-link:hover { background: rgba(255,255,255,0.14); }
 
 .loading, .error {
   text-align: center;

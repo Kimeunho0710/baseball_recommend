@@ -4,6 +4,7 @@ import SurveyView from '../views/SurveyView.vue'
 import ResultView from '../views/ResultView.vue'
 import TeamsView from '../views/TeamsView.vue'
 import TeamDetailView from '../views/TeamDetailView.vue'
+import TeamCompareView from '../views/TeamCompareView.vue'
 import StandingView from '../views/StandingView.vue'
 
 const router = createRouter({
@@ -14,6 +15,7 @@ const router = createRouter({
     { path: '/result/:id', name: 'result', component: ResultView },
     { path: '/teams', name: 'teams', component: TeamsView },
     { path: '/teams/:id', name: 'team-detail', component: TeamDetailView },
+    { path: '/compare', name: 'compare', component: TeamCompareView },
     { path: '/standings', name: 'standings', component: StandingView }
   ]
 })

@@ -20,6 +20,7 @@ public class TeamResponse {
     private Integer championships;
     private String mascot;
     private String manager;
+    private String beginnerGuide;
 
     public static TeamResponse from(Team team) {
         return TeamResponse.builder()
@@ -35,6 +36,7 @@ public class TeamResponse {
                 .championships(team.getChampionships())
                 .mascot(team.getMascot())
                 .manager(team.getManager())
+                .beginnerGuide(team.getBeginnerGuide())
                 .build();
     }
 }

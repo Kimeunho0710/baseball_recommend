@@ -34,3 +34,8 @@ export async function fetchRecommend(id) {
   const { data } = await api.get(`/recommend/${id}`)
   return data
 }
+
+export async function fetchTeamPlayers(teamId) {
+  const { data } = await api.get(`/teams/${teamId}/players`)
+  return data
+}

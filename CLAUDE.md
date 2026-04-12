@@ -34,12 +34,13 @@ frontend/src/
 ├── router/index.js      페이지 라우팅
 ├── stores/surveyStore.js Pinia 상태 관리
 └── views/
-    ├── HomeView.vue      홈 (히어로 + 팀 미리보기)
-    ├── SurveyView.vue    설문 (진행바, A/B 선택, 슬라이드 전환)
-    ├── ResultView.vue    추천 결과
-    ├── TeamsView.vue     팀 목록 (그리드)
-    ├── TeamDetailView.vue 팀 상세 (통계, 특징, 감독)
-    └── StandingView.vue  순위표 (포스트시즌 강조)
+    ├── HomeView.vue        홈 (히어로 + 팀 미리보기)
+    ├── SurveyView.vue      설문 (진행바, A/B 선택, 슬라이드 전환)
+    ├── ResultView.vue      추천 결과 (Top 3, 팬 프로필)
+    ├── TeamsView.vue       팀 목록 (그리드)
+    ├── TeamDetailView.vue  팀 상세 (통계, 특징, 선수, 감독, 입문가이드)
+    ├── TeamCompareView.vue 팀 비교 (두 팀 나란히)
+    └── StandingView.vue    순위표 (포스트시즌 강조)
 ```
 
 ## API 엔드포인트
@@ -47,6 +48,7 @@ frontend/src/
 |--------|-----|------|
 | GET | /api/teams | 전체 팀 목록 |
 | GET | /api/teams/{id} | 팀 상세 정보 |
+| GET | /api/teams/{id}/players | 팀 소속 선수 목록 |
 | GET | /api/survey/questions | 설문 질문 8개 |
 | POST | /api/survey/submit | 설문 제출 → 추천 결과 반환 |
 | GET | /api/recommend/{id} | 추천 결과 조회 |
@@ -115,6 +117,7 @@ npm run dev
 
 ## 향후 추가 예정 기능
 - [x] 추천 결과 URL 공유 (`/result/:id`, 링크 복사 버튼)
+- [x] 팀 탐색 완성 (주요 선수 40명, 입문가이드, 팀 비교 페이지)
 - [ ] 실제 Claude AI API 연동 (infra/claude/ClaudeClient 교체)
 - [ ] 결과 공유 기능 (카카오톡 공유)
 - [ ] 오늘의 경기 일정 스크래핑

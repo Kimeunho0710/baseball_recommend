@@ -19,6 +19,7 @@
       </div>
 
       <div class="content-area">
+
         <!-- 핵심 지표 -->
         <div class="stats-row">
           <div class="stat-box">
@@ -58,6 +59,29 @@
           </div>
         </div>
 
+        <!-- 주요 선수 -->
+        <div class="section">
+          <h2 class="section-title">주요 선수</h2>
+          <div v-if="playersLoading" class="players-loading">선수 정보 불러오는 중...</div>
+          <div v-else class="players-grid">
+            <div
+              v-for="player in players"
+              :key="player.id"
+              class="player-card"
+              :style="{ '--team-color': team.primaryColor }"
+            >
+              <div class="player-top" :style="{ background: team.primaryColor + '22', borderColor: team.primaryColor + '44' }">
+                <span class="jersey-num" :style="{ color: team.primaryColor }">#{{ player.jerseyNumber }}</span>
+                <span class="position-badge">{{ player.position }}</span>
+              </div>
+              <div class="player-body">
+                <p class="player-name">{{ player.name }}</p>
+                <p class="player-desc">{{ player.description }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 감독 -->
         <div class="section">
           <h2 class="section-title">현재 감독</h2>
@@ -92,12 +116,25 @@
           </div>
         </div>
 
-        <!-- 추천 버튼 -->
+        <!-- 입문 가이드 -->
+        <div v-if="team.beginnerGuide" class="section">
+          <h2 class="section-title">입문자 가이드</h2>
+          <div class="guide-box" :style="{ borderLeftColor: team.primaryColor }">
+            <span class="guide-icon">💡</span>
+            <p class="guide-text">{{ team.beginnerGuide }}</p>
+          </div>
+        </div>
+
+        <!-- 버튼 영역 -->
         <div class="cta-area">
+          <RouterLink to="/compare" class="cta-btn compare-btn">
+            다른 팀과 비교하기
+          </RouterLink>
           <RouterLink to="/survey" class="cta-btn" :style="{ background: team.primaryColor }">
             내가 이 팀에 맞는지 확인하기 →
           </RouterLink>
         </div>
+
       </div>
     </template>
   </div>
@@ -106,11 +143,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
-import { fetchTeam } from '../api/surveyApi'
+import { fetchTeam, fetchTeamPlayers } from '../api/surveyApi'
 
 const route = useRoute()
 const team = ref(null)
+const players = ref([])
 const loading = ref(false)
+const playersLoading = ref(false)
 const error = ref(null)
 
 const mascotIconMap = {
@@ -137,6 +176,13 @@ onMounted(async () => {
     error.value = '팀 정보를 불러오는 중 오류가 발생했습니다.'
   } finally {
     loading.value = false
+  }
+
+  playersLoading.value = true
+  try {
+    players.value = await fetchTeamPlayers(route.params.id)
+  } finally {
+    playersLoading.value = false
   }
 })
 </script>
@@ -171,7 +217,6 @@ onMounted(async () => {
   display: inline-block;
   margin-bottom: 20px;
 }
-
 .back-link:hover { color: white; }
 
 .hero-content {
@@ -180,9 +225,7 @@ onMounted(async () => {
   gap: 20px;
 }
 
-.mascot-icon {
-  font-size: 4rem;
-}
+.mascot-icon { font-size: 4rem; }
 
 .team-name {
   font-size: 2.4rem;
@@ -201,6 +244,7 @@ onMounted(async () => {
   padding: 30px 20px 60px;
 }
 
+/* ── 지표 ── */
 .stats-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -229,9 +273,8 @@ onMounted(async () => {
   color: #888;
 }
 
-.section {
-  margin-bottom: 28px;
-}
+/* ── 섹션 공통 ── */
+.section { margin-bottom: 28px; }
 
 .section-title {
   font-size: 1rem;
@@ -248,6 +291,7 @@ onMounted(async () => {
   font-size: 0.95rem;
 }
 
+/* ── 특징 태그 ── */
 .char-tags {
   display: flex;
   flex-wrap: wrap;
@@ -261,11 +305,73 @@ onMounted(async () => {
   font-size: 0.85rem;
 }
 
+/* ── 선수 카드 ── */
+.players-loading {
+  color: #a8d8ea;
+  font-size: 0.9rem;
+}
+
+.players-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.player-card {
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.player-card:hover {
+  border-color: var(--team-color);
+}
+
+.player-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid;
+}
+
+.jersey-num {
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.position-badge {
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 10px;
+  color: #ddd;
+}
+
+.player-body {
+  padding: 12px 14px;
+}
+
+.player-name {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.player-desc {
+  font-size: 0.8rem;
+  color: #aaa;
+  line-height: 1.6;
+}
+
+/* ── 감독 ── */
 .manager {
   font-size: 1rem;
   color: #ddd;
 }
 
+/* ── 역대 기록 ── */
 .records {
   display: flex;
   flex-direction: column;
@@ -281,9 +387,7 @@ onMounted(async () => {
   padding: 14px 16px;
 }
 
-.record-icon {
-  font-size: 1.5rem;
-}
+.record-icon { font-size: 1.5rem; }
 
 .record-title {
   font-size: 0.8rem;
@@ -296,20 +400,50 @@ onMounted(async () => {
   font-weight: 600;
 }
 
+/* ── 입문 가이드 ── */
+.guide-box {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: rgba(255,255,255,0.04);
+  border-left: 4px solid;
+  border-radius: 0 12px 12px 0;
+  padding: 16px 20px;
+}
+
+.guide-icon { font-size: 1.3rem; flex-shrink: 0; }
+
+.guide-text {
+  font-size: 0.92rem;
+  line-height: 1.8;
+  color: #ddd;
+}
+
+/* ── CTA ── */
 .cta-area {
   margin-top: 40px;
-  text-align: center;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .cta-btn {
+  flex: 1;
+  min-width: 180px;
   display: inline-block;
   color: white;
   text-decoration: none;
-  padding: 14px 32px;
+  padding: 14px 24px;
   border-radius: 30px;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
+  text-align: center;
   transition: opacity 0.2s, transform 0.2s;
+}
+
+.compare-btn {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
 }
 
 .cta-btn:hover {
@@ -320,5 +454,7 @@ onMounted(async () => {
 @media (max-width: 600px) {
   .stats-row { grid-template-columns: repeat(2, 1fr); }
   .team-name { font-size: 1.8rem; }
+  .players-grid { grid-template-columns: 1fr; }
+  .cta-area { flex-direction: column; }
 }
 </style>

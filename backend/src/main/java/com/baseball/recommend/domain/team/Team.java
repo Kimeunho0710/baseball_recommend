@@ -49,10 +49,14 @@ public class Team {
     @Column
     private String manager;
 
+    @Column(columnDefinition = "TEXT")
+    private String beginnerGuide;
+
     @Builder
     public Team(String name, String city, String stadium, String description,
                 String characteristics, String primaryColor, String logoUrl,
-                Integer foundedYear, Integer championships, String mascot, String manager) {
+                Integer foundedYear, Integer championships, String mascot, String manager,
+                String beginnerGuide) {
         this.name = name;
         this.city = city;
         this.stadium = stadium;
@@ -64,11 +68,12 @@ public class Team {
         this.championships = championships;
         this.mascot = mascot;
         this.manager = manager;
+        this.beginnerGuide = beginnerGuide;
     }
 
     public void update(String city, String stadium, String description, String characteristics,
                        String primaryColor, Integer foundedYear, Integer championships,
-                       String mascot, String manager) {
+                       String mascot, String manager, String beginnerGuide) {
         this.city = city;
         this.stadium = stadium;
         this.description = description;
@@ -78,5 +83,6 @@ public class Team {
         this.championships = championships;
         this.mascot = mascot;
         this.manager = manager;
+        this.beginnerGuide = beginnerGuide;
     }
 }
