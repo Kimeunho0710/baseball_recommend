@@ -29,3 +29,8 @@ export async function fetchStandings() {
   const { data } = await api.get('/standings')
   return data
 }
+
+export async function fetchRecommend(id) {
+  const { data } = await api.get(`/recommend/${id}`)
+  return data
+}

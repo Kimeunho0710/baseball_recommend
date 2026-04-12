@@ -1,12 +1,20 @@
 <template>
   <div class="result-page">
     <div class="result-container">
-      <div v-if="!result" class="no-result">
-        <p>설문 결과가 없습니다.</p>
+
+      <!-- 로딩 -->
+      <div v-if="loading" class="state-box">
+        <p>결과를 불러오는 중...</p>
+      </div>
+
+      <!-- 에러 -->
+      <div v-else-if="error" class="state-box">
+        <p>{{ error }}</p>
         <RouterLink to="/survey" class="retry-btn">설문 다시 하기</RouterLink>
       </div>
 
-      <template v-else>
+      <!-- 결과 -->
+      <template v-else-if="result">
         <div class="result-header">
           <p class="label">AI 추천 결과</p>
           <h1 class="team-name" :style="{ color: teamColor }">
@@ -39,26 +47,34 @@
           </div>
         </div>
 
+        <!-- 링크 복사 -->
+        <button class="share-btn" @click="copyLink">
+          {{ copied ? '✅ 링크 복사됨!' : '🔗 결과 링크 복사' }}
+        </button>
+
         <div class="action-btns">
-          <RouterLink to="/survey" class="btn retry">
-            다시 해보기
-          </RouterLink>
-          <RouterLink to="/" class="btn home">
-            홈으로
-          </RouterLink>
+          <RouterLink to="/survey" class="btn retry">다시 해보기</RouterLink>
+          <RouterLink to="/" class="btn home">홈으로</RouterLink>
         </div>
       </template>
+
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { RouterLink } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, RouterLink } from 'vue-router'
 import { useSurveyStore } from '../stores/surveyStore'
+import { fetchRecommend } from '../api/surveyApi'
 
+const route = useRoute()
 const store = useSurveyStore()
-const result = computed(() => store.result)
+
+const result = ref(null)
+const loading = ref(false)
+const error = ref(null)
+const copied = ref(false)
 
 const teamColorMap = {
   'KIA 타이거즈': '#EA0029',
@@ -82,6 +98,32 @@ const characteristics = computed(() =>
     ? result.value.teamCharacteristics.split(',').map(c => c.trim())
     : []
 )
+
+onMounted(async () => {
+  const id = route.params.id
+
+  // 설문 직후 이동 시 store에 결과가 있으면 그대로 사용
+  if (store.result && String(store.result.recommendId) === String(id)) {
+    result.value = store.result
+    return
+  }
+
+  // 새로고침 or 공유 링크 접근 시 API로 조회
+  loading.value = true
+  try {
+    result.value = await fetchRecommend(id)
+  } catch {
+    error.value = '결과를 찾을 수 없습니다.'
+  } finally {
+    loading.value = false
+  }
+})
+
+async function copyLink() {
+  await navigator.clipboard.writeText(window.location.href)
+  copied.value = true
+  setTimeout(() => { copied.value = false }, 2000)
+}
 </script>
 
 <style scoped>
@@ -103,6 +145,11 @@ const characteristics = computed(() =>
   max-width: 580px;
   color: white;
   text-align: center;
+}
+
+.state-box {
+  padding: 40px 0;
+  color: #a8d8ea;
 }
 
 .label {
@@ -156,7 +203,7 @@ const characteristics = computed(() =>
 }
 
 .description-box {
-  margin-bottom: 30px;
+  margin-bottom: 24px;
   color: #bbb;
   font-size: 0.9rem;
   line-height: 1.7;
@@ -176,6 +223,24 @@ const characteristics = computed(() =>
   border-radius: 20px;
   font-size: 0.8rem;
   color: white;
+}
+
+.share-btn {
+  width: 100%;
+  padding: 13px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.07);
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: all 0.2s;
+}
+
+.share-btn:hover {
+  background: rgba(255, 255, 255, 0.13);
 }
 
 .action-btns {
@@ -206,10 +271,6 @@ const characteristics = computed(() =>
 .btn:hover {
   opacity: 0.85;
   transform: translateY(-1px);
-}
-
-.no-result {
-  padding: 40px 0;
 }
 
 .retry-btn {

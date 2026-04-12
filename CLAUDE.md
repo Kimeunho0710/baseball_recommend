@@ -69,6 +69,13 @@ frontend/src/
 - 팀별 맞춤형 추천 이유 템플릿 생성
 - 추천 결과 DB 저장 (RecommendResult)
 
+### 추천 결과 URL 공유
+- 결과 페이지 라우트를 `/result/:id`로 변경 → 고유 URL로 접근 가능
+- 설문 직후 이동: Pinia store 결과 재사용 (불필요한 API 호출 없음)
+- 새로고침 / 공유 링크 직접 접근: `GET /api/recommend/{id}` 로 결과 재조회
+- 로딩 / 에러 상태 UI 처리
+- 링크 복사 버튼 (`navigator.clipboard`) + 복사 완료 피드백
+
 ### KBO 순위 스크래핑
 - 대상 URL: https://www.koreabaseball.com/record/teamrank/teamrankdaily.aspx
 - 스크래핑 방식: Jsoup HTTP 요청 (브라우저 없음, Playwright 제거됨)
@@ -98,10 +105,12 @@ npm run dev
 - .gitignore에 backend/src/main/resources/application.yml 추가 필요
 
 ## 향후 추가 예정 기능
+- [x] 추천 결과 URL 공유 (`/result/:id`, 링크 복사 버튼)
 - [ ] 실제 Claude AI API 연동 (infra/claude/ClaudeClient 교체)
-- [ ] 회원 시스템 (domain/member, Spring Security + JWT)
-- [ ] 결과 공유 기능 (카카오톡, 이미지)
+- [ ] 결과 공유 기능 (카카오톡 공유)
 - [ ] 오늘의 경기 일정 스크래핑
+- [ ] 팀별 인기 통계
 - [ ] 선수 정보 도메인
+- [ ] 회원 시스템 (domain/member, Spring Security + JWT)
 - [ ] RAG 기반 추천 (벡터 DB + Claude)
 - [ ] MCP 서버 연동

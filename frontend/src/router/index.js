@@ -11,7 +11,7 @@ const router = createRouter({
   routes: [
     { path: '/', name: 'home', component: HomeView },
     { path: '/survey', name: 'survey', component: SurveyView },
-    { path: '/result', name: 'result', component: ResultView },
+    { path: '/result/:id', name: 'result', component: ResultView },
     { path: '/teams', name: 'teams', component: TeamsView },
     { path: '/teams/:id', name: 'team-detail', component: TeamDetailView },
     { path: '/standings', name: 'standings', component: StandingView }

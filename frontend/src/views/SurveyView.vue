@@ -108,8 +108,8 @@ function prevQuestion() {
 async function handleSubmit() {
   isSubmitting.value = true
   try {
-    await store.submit()
-    router.push('/result')
+    const result = await store.submit()
+    router.push(`/result/${result.recommendId}`)
   } catch {
     // error는 store에서 관리
   } finally {
