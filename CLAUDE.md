@@ -53,6 +53,9 @@ frontend/src/
 | POST | /api/survey/submit | 설문 제출 → 추천 결과 반환 |
 | GET | /api/recommend/{id} | 추천 결과 조회 |
 | GET | /api/standings | KBO 현재 순위 |
+| GET | /api/games/today | 오늘의 경기 일정/결과 |
+| GET | /api/games/recent | 최근 7일 경기 결과 |
+| GET | /api/games/form/{teamName} | 팀 최근 5경기 폼 |
 
 ## 구현 완료 기능
 
@@ -118,6 +121,7 @@ npm run dev
 ## 향후 추가 예정 기능
 - [x] 추천 결과 URL 공유 (`/result/:id`, 링크 복사 버튼)
 - [x] 팀 탐색 완성 (주요 선수 40명, 입문가이드, 팀 비교 페이지)
+- [x] 리그 데이터 확장 (오늘의 경기, 최근 결과, 최근 폼 - KBO 스크래핑)
 - [ ] 실제 Claude AI API 연동 (infra/claude/ClaudeClient 교체)
 - [ ] 결과 공유 기능 (카카오톡 공유)
 - [ ] 오늘의 경기 일정 스크래핑

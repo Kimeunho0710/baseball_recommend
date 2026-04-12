@@ -39,3 +39,18 @@ export async function fetchTeamPlayers(teamId) {
   const { data } = await api.get(`/teams/${teamId}/players`)
   return data
 }
+
+export async function fetchTodayGames() {
+  const { data } = await api.get('/games/today')
+  return data
+}
+
+export async function fetchRecentGames() {
+  const { data } = await api.get('/games/recent')
+  return data
+}
+
+export async function fetchTeamForm(teamName) {
+  const { data } = await api.get(`/games/form/${encodeURIComponent(teamName)}`)
+  return data
+}
