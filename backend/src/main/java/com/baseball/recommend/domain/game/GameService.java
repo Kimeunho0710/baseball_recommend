@@ -1,6 +1,9 @@
 package com.baseball.recommend.domain.game;
 
 import com.baseball.recommend.domain.game.dto.GameDto;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
@@ -11,362 +14,330 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class GameService {
 
-    private volatile List<GameDto> gameCache = new ArrayList<>();
-    private volatile LocalDateTime lastUpdated = null;
+    private final GameRepository gameRepository;
+    private final ObjectMapper objectMapper;
 
-    private static final String SCHEDULE_URL =
-            "https://www.koreabaseball.com/Schedule/Schedule.aspx";
+    private static final String KBO_SCHEDULE_URL =
+            "https://www.koreabaseball.com/ws/Schedule.asmx/GetScheduleList";
+
     private static final String USER_AGENT =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
             "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
-    /** 팀 약칭 → 정식명 (긴 것을 먼저 매핑해야 "기아 타이거즈" 가 "기아" 에 먹히지 않음) */
-    private static final LinkedHashMap<String, String> TEAM_NAME_MAP = new LinkedHashMap<>();
-    static {
-        TEAM_NAME_MAP.put("기아 타이거즈",  "KIA 타이거즈");
-        TEAM_NAME_MAP.put("KIA 타이거즈",  "KIA 타이거즈");
-        TEAM_NAME_MAP.put("삼성 라이온즈",  "삼성 라이온즈");
-        TEAM_NAME_MAP.put("LG 트윈스",     "LG 트윈스");
-        TEAM_NAME_MAP.put("두산 베어스",   "두산 베어스");
-        TEAM_NAME_MAP.put("KT 위즈",       "KT 위즈");
-        TEAM_NAME_MAP.put("SSG 랜더스",    "SSG 랜더스");
-        TEAM_NAME_MAP.put("롯데 자이언츠", "롯데 자이언츠");
-        TEAM_NAME_MAP.put("한화 이글스",   "한화 이글스");
-        TEAM_NAME_MAP.put("NC 다이노스",   "NC 다이노스");
-        TEAM_NAME_MAP.put("키움 히어로즈", "키움 히어로즈");
-        // 약칭 (뒤에 등록해서 풀명이 우선 매칭됨)
-        TEAM_NAME_MAP.put("기아",  "KIA 타이거즈");
-        TEAM_NAME_MAP.put("KIA",   "KIA 타이거즈");
-        TEAM_NAME_MAP.put("삼성",  "삼성 라이온즈");
-        TEAM_NAME_MAP.put("LG",    "LG 트윈스");
-        TEAM_NAME_MAP.put("두산",  "두산 베어스");
-        TEAM_NAME_MAP.put("KT",    "KT 위즈");
-        TEAM_NAME_MAP.put("SSG",   "SSG 랜더스");
-        TEAM_NAME_MAP.put("롯데",  "롯데 자이언츠");
-        TEAM_NAME_MAP.put("한화",  "한화 이글스");
-        TEAM_NAME_MAP.put("NC",    "NC 다이노스");
-        TEAM_NAME_MAP.put("키움",  "키움 히어로즈");
-    }
+    /** KBO 약칭 → 정식 팀명 */
+    private static final Map<String, String> TEAM_NAME_MAP = Map.ofEntries(
+        Map.entry("KIA",  "KIA 타이거즈"),
+        Map.entry("기아",  "KIA 타이거즈"),
+        Map.entry("삼성",  "삼성 라이온즈"),
+        Map.entry("LG",   "LG 트윈스"),
+        Map.entry("두산",  "두산 베어스"),
+        Map.entry("KT",   "KT 위즈"),
+        Map.entry("SSG",  "SSG 랜더스"),
+        Map.entry("롯데",  "롯데 자이언츠"),
+        Map.entry("한화",  "한화 이글스"),
+        Map.entry("NC",   "NC 다이노스"),
+        Map.entry("키움",  "키움 히어로즈")
+    );
 
     // ─────────────────────────────────────────────
     // 공개 API
     // ─────────────────────────────────────────────
 
     public List<GameDto> getTodayGames() {
-        ensureCache();
         String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        List<GameDto> result = gameCache.stream()
+        List<Game> dbGames = gameRepository.findByGameDate(today);
+        if (!dbGames.isEmpty()) {
+            log.info("오늘({}) 경기 DB 반환: {}건", today, dbGames.size());
+            return toDto(dbGames);
+        }
+        log.info("오늘 경기 DB 없음, 즉시 스크래핑");
+        List<GameDto> scraped = fetchCurrentMonths();
+        if (!scraped.isEmpty()) upsertAll(scraped);
+        return scraped.stream()
                 .filter(g -> today.equals(g.getGameDate()))
                 .collect(Collectors.toList());
-        log.info("오늘({}) 경기: {}건", today, result.size());
-        return result;
     }
 
     public List<GameDto> getRecentGames() {
-        ensureCache();
         String cutoff = LocalDate.now().minusDays(7)
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        return gameCache.stream()
+        String yesterday = LocalDate.now().minusDays(1)
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        List<Game> dbGames = gameRepository
+                .findByCompletedTrueAndGameDateBetweenOrderByGameDateDesc(cutoff, yesterday);
+        if (!dbGames.isEmpty()) {
+            log.info("최근 결과 DB 반환: {}건", dbGames.size());
+            return toDto(dbGames).stream().limit(15).collect(Collectors.toList());
+        }
+        log.info("최근 결과 DB 없음, 즉시 스크래핑");
+        List<GameDto> scraped = fetchCurrentMonths();
+        if (!scraped.isEmpty()) upsertAll(scraped);
+        return scraped.stream()
                 .filter(GameDto::isCompleted)
                 .filter(g -> g.getGameDate().compareTo(cutoff) >= 0
-                          && g.getGameDate().compareTo(today) < 0)
-                .sorted(Comparator.comparing(GameDto::getGameDate).reversed())
+                          && g.getGameDate().compareTo(yesterday) <= 0)
                 .limit(15)
                 .collect(Collectors.toList());
     }
 
     public List<String> getTeamRecentForm(String teamName) {
-        ensureCache();
-        String normalized = normalizeTeamName(teamName);
-        if (normalized == null) normalized = teamName;
-        final String team = normalized;
-
-        return gameCache.stream()
-                .filter(GameDto::isCompleted)
-                .filter(g -> team.equals(g.getHomeTeam()) || team.equals(g.getAwayTeam()))
-                .sorted(Comparator.comparing(GameDto::getGameDate).reversed())
+        String team = Optional.ofNullable(TEAM_NAME_MAP.get(teamName)).orElse(teamName);
+        return gameRepository
+                .findByCompletedTrueAndAwayTeamOrCompletedTrueAndHomeTeamOrderByGameDateDesc(team, team)
+                .stream()
                 .limit(5)
                 .map(g -> computeResult(g, team))
                 .collect(Collectors.toList());
     }
 
     // ─────────────────────────────────────────────
-    // 스케줄 갱신
+    // 스케줄 갱신 (서버 시작 90초 후, 이후 30분마다)
     // ─────────────────────────────────────────────
 
     @Scheduled(initialDelay = 90_000, fixedDelay = 30 * 60_000)
     public void scheduledRefresh() {
         log.info("[스케줄] 경기 일정 갱신 시작");
-        refreshCache();
-    }
-
-    private void ensureCache() {
-        if (gameCache.isEmpty() || lastUpdated == null
-                || lastUpdated.isBefore(LocalDateTime.now().minusMinutes(30))) {
-            refreshCache();
+        List<GameDto> games = fetchCurrentMonths();
+        if (games.isEmpty()) {
+            log.warn("[스케줄] 스크래핑 실패, DB 유지");
+            return;
         }
-    }
-
-    private void refreshCache() {
-        List<GameDto> games = scrapeSchedule();
-        if (!games.isEmpty()) {
-            gameCache = games;
-            lastUpdated = LocalDateTime.now();
-            log.info("경기 캐시 갱신 완료: {}경기", games.size());
-        } else {
-            log.warn("경기 스크래핑 결과 없음 — 기존 캐시 유지");
-        }
+        upsertAll(games);
+        log.info("[스케줄] 경기 DB 갱신 완료: {}건", games.size());
     }
 
     // ─────────────────────────────────────────────
-    // 스크래핑: GET → (데이터 없으면) ASPX POST
+    // KBO WebService 호출
     // ─────────────────────────────────────────────
 
-    private List<GameDto> scrapeSchedule() {
+    /** 이번 달 + 7일이 다음 달로 넘어가면 다음 달도 함께 수집 */
+    private List<GameDto> fetchCurrentMonths() {
         LocalDate today = LocalDate.now();
-        int year  = today.getYear();
-        int month = today.getMonthValue();
+        List<GameDto> all = new ArrayList<>(fetchMonth(today.getYear(), today.getMonthValue()));
 
-        try {
-            // ① GET 시도
-            Document doc = Jsoup.connect(SCHEDULE_URL)
-                    .userAgent(USER_AGENT)
-                    .header("Accept-Language", "ko-KR,ko;q=0.9")
-                    .header("Referer", "https://www.koreabaseball.com")
-                    .timeout(15_000)
-                    .get();
-
-            log.info("스케줄 페이지 응답 길이: {}", doc.html().length());
-            logHtmlSnippet(doc);
-
-            List<GameDto> games = parseGames(doc, year, month);
-
-            // ② GET으로 데이터가 없으면 ViewState POST 시도
-            if (games.isEmpty()) {
-                log.info("GET 파싱 결과 없음 → ASPX POST 시도");
-                games = scrapeWithPost(doc, year, month);
-            }
-
-            return games;
-
-        } catch (Exception e) {
-            log.error("스크래핑 오류: {}", e.getMessage());
-            return List.of();
+        LocalDate future = today.plusDays(7);
+        if (future.getMonthValue() != today.getMonthValue()) {
+            all.addAll(fetchMonth(future.getYear(), future.getMonthValue()));
         }
+        return all;
     }
 
-    private List<GameDto> scrapeWithPost(Document getDoc, int year, int month) {
+    private List<GameDto> fetchMonth(int year, int month) {
+        String season = String.valueOf(year);
+        String gameMonth = String.format("%02d", month);
         try {
-            String viewState    = getDoc.select("[name='__VIEWSTATE']").val();
-            String vsGenerator  = getDoc.select("[name='__VIEWSTATEGENERATOR']").val();
-            String evValidation = getDoc.select("[name='__EVENTVALIDATION']").val();
-
-            if (viewState.isEmpty()) {
-                log.warn("ViewState 없음 — POST 불가");
-                return List.of();
-            }
-
-            log.info("ASPX POST 시도 (year={}, month={})", year, month);
-
-            Document postDoc = Jsoup.connect(SCHEDULE_URL)
-                    .userAgent(USER_AGENT)
-                    .header("Accept-Language", "ko-KR,ko;q=0.9")
-                    .header("Referer", SCHEDULE_URL)
+            String body = Jsoup.connect(KBO_SCHEDULE_URL)
                     .method(Connection.Method.POST)
-                    .data("__EVENTTARGET", "ctl00$cphContents$ddlMonth")
-                    .data("__EVENTARGUMENT", "")
-                    .data("__VIEWSTATE", viewState)
-                    .data("__VIEWSTATEGENERATOR", vsGenerator)
-                    .data("__EVENTVALIDATION", evValidation)
-                    .data("ctl00$cphContents$ddlSeries", "0")
-                    .data("ctl00$cphContents$ddlYear", String.valueOf(year))
-                    .data("ctl00$cphContents$ddlMonth", String.format("%02d", month))
+                    .data("leId", "1")
+                    .data("srIdList", "0,9,6")
+                    .data("seasonId", season)
+                    .data("gameMonth", gameMonth)
+                    .data("teamId", "")
+                    .userAgent(USER_AGENT)
+                    .header("Referer", "https://www.koreabaseball.com/Schedule/Schedule.aspx")
+                    .header("Accept", "application/json, text/javascript, */*")
+                    .ignoreContentType(true)
                     .timeout(15_000)
                     .execute()
-                    .parse();
+                    .body();
 
-            logHtmlSnippet(postDoc);
-            List<GameDto> games = parseGames(postDoc, year, month);
-            log.info("POST 파싱 결과: {}경기", games.size());
-            return games;
-
+            List<GameDto> result = parseKboResponse(body, season);
+            log.info("KBO API {}-{}: {}경기 수집", season, gameMonth, result.size());
+            return result;
         } catch (Exception e) {
-            log.error("ASPX POST 오류: {}", e.getMessage());
+            log.warn("KBO API {}-{} 실패: {}", season, gameMonth, e.getMessage());
             return List.of();
         }
     }
 
     // ─────────────────────────────────────────────
-    // HTML 파싱 — 팀명 기반 row 탐지
+    // KBO 응답 파싱
     // ─────────────────────────────────────────────
 
-    private List<GameDto> parseGames(Document doc, int year, int month) {
-        List<GameDto> games = new ArrayList<>();
-        int currentDay = -1;
+    private List<GameDto> parseKboResponse(String json, String season) {
+        List<GameDto> result = new ArrayList<>();
+        String currentDate = null;
+        try {
+            JsonNode root = objectMapper.readTree(json);
+            JsonNode rows = root.path("rows");
+            if (!rows.isArray()) return result;
 
-        Pattern dayPattern = Pattern.compile("(\\d{1,2})일");
+            for (JsonNode rowNode : rows) {
+                JsonNode row = rowNode.path("row");
+                if (!row.isArray() || row.size() == 0) continue;
 
-        for (Element row : doc.select("tr")) {
-            // ── 날짜 헤더 감지 (<th> 또는 colspan이 큰 <td>) ──
-            String headerText = extractHeaderText(row);
-            if (headerText != null) {
-                Matcher m = dayPattern.matcher(headerText);
-                if (m.find()) {
-                    currentDay = Integer.parseInt(m.group(1));
-                    log.debug("날짜 헤더 감지: {}일 (원문: {})", currentDay, headerText);
-                    continue;
+                // 첫 셀 Class가 "day"이면 날짜 갱신
+                String firstClass = row.get(0).path("Class").asText("");
+                boolean hasDay = "day".equals(firstClass);
+                if (hasDay) {
+                    String dayText = Jsoup.parse(row.get(0).path("Text").asText("")).text();
+                    currentDate = parseKboDate(dayText, season);
+                }
+                if (currentDate == null) continue;
+
+                // 오프셋: day셀 있으면 +1
+                int offset = hasDay ? 1 : 0;
+
+                String timeText = cellText(row, offset);      // time
+                String playHtml = cellHtml(row, offset + 1);  // play
+                String stadium  = cellText(row, offset + 6);  // stadium
+
+                if (playHtml == null) continue;
+
+                GameDto game = parsePlayHtml(playHtml, currentDate, timeText, stadium);
+                if (game != null) result.add(game);
+            }
+        } catch (Exception e) {
+            log.warn("KBO 응답 파싱 오류: {}", e.getMessage());
+        }
+        return result;
+    }
+
+    /** "04.01(수)" + "2026" → "2026-04-01" */
+    private String parseKboDate(String dayText, String season) {
+        try {
+            String cleaned = dayText.replaceAll("\\(.*\\)", "").trim(); // "04.01"
+            String[] parts = cleaned.split("\\.");
+            return season + "-" + parts[0] + "-" + parts[1];
+        } catch (Exception e) {
+            log.debug("날짜 파싱 실패: {}", dayText);
+            return null;
+        }
+    }
+
+    /**
+     * play 셀 HTML 파싱
+     * 완료: <span>KIA</span><em><span class="lose">2</span><span>vs</span><span class="win">7</span></em><span>LG</span>
+     * 예정: <span>NC</span><em><span>vs</span></em><span>KIA</span>
+     */
+    /**
+     * play 셀 HTML 파싱
+     * 완료: <span>KIA</span><em><span class="lose">2</span><span>vs</span><span class="win">7</span></em><span>LG</span>
+     * 예정: <span>NC</span><em><span>vs</span></em><span>KIA</span>
+     */
+    private GameDto parsePlayHtml(String html, String date, String timeText, String stadium) {
+        try {
+            Document doc = Jsoup.parseBodyFragment(html);
+
+            // body 직접 자식 중 span 태그만 → away / home 팀
+            List<Element> teamSpans = doc.body().children().stream()
+                    .filter(e -> "span".equals(e.tagName()))
+                    .collect(Collectors.toList());
+            if (teamSpans.size() < 2) return null;
+
+            String awayTeam = resolveTeam(teamSpans.get(0).text());
+            String homeTeam = resolveTeam(teamSpans.get(teamSpans.size() - 1).text());
+            if (awayTeam == null || homeTeam == null) return null;
+
+            // em 안의 .win / .lose span → 점수 (완료 경기만 존재)
+            Element em = doc.selectFirst("em");
+            Integer awayScore = null, homeScore = null;
+            boolean completed = false;
+
+            if (em != null) {
+                Elements scoreSpans = em.select("span.win, span.lose");
+                if (scoreSpans.size() >= 2) {
+                    awayScore = parseScore(scoreSpans.get(0).text());
+                    homeScore = parseScore(scoreSpans.get(1).text());
+                    completed = awayScore != null && homeScore != null;
                 }
             }
 
-            // ── 팀명 기반 게임 row 탐지 ──
-            String rowText = row.text();
-            List<String> teamsInRow = extractTeamsFromText(rowText);
-
-            if (teamsInRow.size() < 2) continue;
-
-            String awayTeam = teamsInRow.get(0);
-            String homeTeam = teamsInRow.get(1);
-
-            String gameTime = extractTime(rowText);
-            int[]  scores   = extractScore(row, rowText);
-            String stadium  = extractStadium(row, rowText, awayTeam, homeTeam);
-            boolean completed = (scores != null) || rowText.contains("종료");
-
-            String dateStr = currentDay > 0
-                    ? String.format("%04d-%02d-%02d", year, month, currentDay)
-                    : LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-
-            GameDto game = GameDto.builder()
-                    .gameDate(dateStr)
-                    .gameTime(gameTime)
+            return GameDto.builder()
+                    .gameDate(date)
+                    .gameTime(completed ? null : stripHtml(timeText))
                     .awayTeam(awayTeam)
                     .homeTeam(homeTeam)
-                    .awayScore(scores != null ? scores[0] : null)
-                    .homeScore(scores != null ? scores[1] : null)
-                    .stadium(stadium)
+                    .awayScore(awayScore)
+                    .homeScore(homeScore)
+                    .stadium(stadium != null && !stadium.isBlank() ? stadium : null)
                     .completed(completed)
                     .build();
-
-            // 중복 제거
-            boolean dup = games.stream().anyMatch(g ->
-                    g.getGameDate().equals(game.getGameDate())
-                    && g.getAwayTeam().equals(awayTeam)
-                    && g.getHomeTeam().equals(homeTeam));
-            if (!dup) {
-                games.add(game);
-                log.debug("게임 파싱: {} {} vs {} ({})", dateStr, awayTeam, homeTeam,
-                        completed ? scores[0] + ":" + scores[1] : gameTime);
-            }
+        } catch (Exception e) {
+            log.debug("play 셀 파싱 오류: {}", e.getMessage());
+            return null;
         }
-
-        return games;
     }
 
-    /** row에서 날짜 헤더 텍스트 추출 (<th> 또는 colspan>=5인 <td>) */
-    private String extractHeaderText(Element row) {
-        Element th = row.selectFirst("th");
-        if (th != null) return th.text().trim();
+    // ─────────────────────────────────────────────
+    // DB upsert
+    // ─────────────────────────────────────────────
 
-        for (Element td : row.select("td")) {
-            String colspan = td.attr("colspan");
-            if (!colspan.isEmpty() && Integer.parseInt(colspan) >= 5) {
-                return td.text().trim();
+    public void upsertAll(List<GameDto> dtos) {
+        if (dtos.isEmpty()) return;
+
+        // 대상 날짜 전체를 한 번에 조회 → N+1 제거
+        Set<String> dates = dtos.stream().map(GameDto::getGameDate).collect(Collectors.toSet());
+        Map<String, Game> existingMap = gameRepository.findByGameDateIn(dates).stream()
+                .collect(Collectors.toMap(
+                        g -> g.getGameDate() + "|" + g.getAwayTeam() + "|" + g.getHomeTeam(),
+                        g -> g
+                ));
+
+        List<Game> toSave = new ArrayList<>();
+        for (GameDto dto : dtos) {
+            String key = dto.getGameDate() + "|" + dto.getAwayTeam() + "|" + dto.getHomeTeam();
+            Game existing = existingMap.get(key);
+            if (existing != null) {
+                existing.update(dto.getGameTime(), dto.getAwayScore(),
+                        dto.getHomeScore(), dto.getStadium(), dto.isCompleted());
+                toSave.add(existing);
+            } else {
+                toSave.add(toEntity(dto));
             }
         }
-        return null;
+        gameRepository.saveAll(toSave);
+        log.info("upsert 완료: {}건 (신규/갱신)", toSave.size());
     }
 
-    /** 텍스트에서 KBO 팀명 순서대로 추출 */
-    private List<String> extractTeamsFromText(String text) {
-        List<String[]> found = new ArrayList<>(); // [index, normalizedName]
+    // ─────────────────────────────────────────────
+    // 유틸
+    // ─────────────────────────────────────────────
+
+    private String resolveTeam(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        String mapped = TEAM_NAME_MAP.get(raw.trim());
+        if (mapped != null) return mapped;
         for (Map.Entry<String, String> e : TEAM_NAME_MAP.entrySet()) {
-            int idx = text.indexOf(e.getKey());
-            if (idx >= 0) {
-                // 이미 같은 정식명이 더 앞 인덱스로 등록됐는지 확인
-                boolean alreadyAdded = found.stream()
-                        .anyMatch(f -> f[1].equals(e.getValue()));
-                if (!alreadyAdded) {
-                    found.add(new String[]{String.valueOf(idx), e.getValue()});
-                }
-            }
-        }
-        return found.stream()
-                .sorted(Comparator.comparingInt(a -> Integer.parseInt(a[0])))
-                .map(a -> a[1])
-                .distinct()
-                .collect(Collectors.toList());
-    }
-
-    /** "18:30" 형태 시간 추출 */
-    private String extractTime(String text) {
-        Matcher m = Pattern.compile("\\b(\\d{1,2}):(\\d{2})\\b").matcher(text);
-        while (m.find()) {
-            int hour = Integer.parseInt(m.group(1));
-            if (hour >= 10 && hour <= 22) return m.group(0); // 경기 시간 범위
+            if (raw.contains(e.getKey())) return e.getValue();
         }
         return null;
     }
 
-    /** 스코어 추출 — "3:5", "3 : 5", 별도 셀 두 개 모두 지원 */
-    private int[] extractScore(Element row, String rowText) {
-        // "숫자:숫자" 패턴 (시간이 아닌 것)
-        Matcher m = Pattern.compile("(?<![\\d:])(\\d{1,2})\\s*:\\s*(\\d{1,2})(?![\\d:])").matcher(rowText);
-        while (m.find()) {
-            int a = Integer.parseInt(m.group(1));
-            int b = Integer.parseInt(m.group(2));
-            // 경기 시간(18:30)이 아닌 것: 양 쪽 값이 모두 20 미만
-            if (a < 20 && b < 20 && !(a >= 10 && b >= 0 && b % 10 == 0)) {
-                return new int[]{a, b};
-            }
-        }
-
-        // 셀을 순서대로 탐색하여 단독 숫자 2개 찾기
-        List<Integer> nums = new ArrayList<>();
-        for (Element td : row.select("td")) {
-            String t = td.text().trim();
-            if (t.matches("\\d{1,2}") && Integer.parseInt(t) < 30) {
-                nums.add(Integer.parseInt(t));
-                if (nums.size() == 2) return new int[]{nums.get(0), nums.get(1)};
-            }
-        }
-        return null;
+    private Integer parseScore(String text) {
+        try { return Integer.parseInt(text.trim()); }
+        catch (Exception e) { return null; }
     }
 
-    /** 구장명 추출 */
-    private String extractStadium(Element row, String rowText, String awayTeam, String homeTeam) {
-        for (Element td : row.select("td")) {
-            String t = td.text().trim();
-            if (t.length() >= 4
-                    && !t.contains(awayTeam.substring(0, Math.min(2, awayTeam.length())))
-                    && !t.contains(homeTeam.substring(0, Math.min(2, homeTeam.length())))
-                    && !t.matches("[\\d:\\s]+")
-                    && !t.contains("종료") && !t.contains("취소") && !t.contains("우천")
-                    && normalizeTeamName(t) == null) {
-                return t;
-            }
-        }
-        return null;
+    private String cellText(JsonNode row, int index) {
+        if (index >= row.size()) return null;
+        return stripHtml(row.get(index).path("Text").asText(""));
     }
 
-    // ─────────────────────────────────────────────
-    // 폼 계산
-    // ─────────────────────────────────────────────
+    private String cellHtml(JsonNode row, int index) {
+        if (index >= row.size()) return null;
+        String text = row.get(index).path("Text").asText("");
+        return text.isBlank() ? null : text;
+    }
 
-    private String computeResult(GameDto game, String teamName) {
-        if (!game.isCompleted() || game.getAwayScore() == null || game.getHomeScore() == null)
-            return "?";
+    private String stripHtml(String html) {
+        if (html == null || html.isBlank()) return null;
+        String text = Jsoup.parse(html).text().trim();
+        return text.isBlank() ? null : text;
+    }
+
+    private String computeResult(Game game, String teamName) {
+        if (!game.isCompleted() || game.getAwayScore() == null || game.getHomeScore() == null) return "?";
         boolean isHome = teamName.equals(game.getHomeTeam());
         int my  = isHome ? game.getHomeScore() : game.getAwayScore();
         int opp = isHome ? game.getAwayScore()  : game.getHomeScore();
@@ -375,22 +346,22 @@ public class GameService {
         return "D";
     }
 
-    // ─────────────────────────────────────────────
-    // 유틸
-    // ─────────────────────────────────────────────
-
-    private String normalizeTeamName(String raw) {
-        if (raw == null || raw.isBlank()) return null;
-        for (Map.Entry<String, String> e : TEAM_NAME_MAP.entrySet()) {
-            if (raw.equals(e.getKey()) || raw.contains(e.getKey())) return e.getValue();
-        }
-        return null;
+    private Game toEntity(GameDto dto) {
+        return Game.builder()
+                .gameDate(dto.getGameDate()).gameTime(dto.getGameTime())
+                .awayTeam(dto.getAwayTeam()).homeTeam(dto.getHomeTeam())
+                .awayScore(dto.getAwayScore()).homeScore(dto.getHomeScore())
+                .stadium(dto.getStadium()).completed(dto.isCompleted())
+                .build();
     }
 
-    private void logHtmlSnippet(Document doc) {
-        String html = doc.html();
-        log.info("HTML 스니펫(앞 800자): {}",
-                html.substring(0, Math.min(800, html.length()))
-                    .replaceAll("\\s+", " "));
+    private List<GameDto> toDto(List<Game> games) {
+        return games.stream().map(g -> GameDto.builder()
+                .gameDate(g.getGameDate()).gameTime(g.getGameTime())
+                .awayTeam(g.getAwayTeam()).homeTeam(g.getHomeTeam())
+                .awayScore(g.getAwayScore()).homeScore(g.getHomeScore())
+                .stadium(g.getStadium()).completed(g.isCompleted())
+                .build()
+        ).collect(Collectors.toList());
     }
 }
