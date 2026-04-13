@@ -13,6 +13,7 @@ public class RecommendResponse {
 
     private Long recommendId;
     private Long surveyResultId;
+    private Long teamId;
     private String teamName;
     private String teamCity;
     private String teamStadium;
@@ -20,6 +21,7 @@ public class RecommendResponse {
     private String teamCharacteristics;
     private String primaryColor;
     private String logoUrl;
+    private String beginnerGuide;
     private String reason;
     private List<TeamRankItem> top3;
     private String fanProfile;
@@ -30,6 +32,7 @@ public class RecommendResponse {
         return RecommendResponse.builder()
                 .recommendId(result.getId())
                 .surveyResultId(result.getSurveyResultId())
+                .teamId(team.getId())
                 .teamName(team.getName())
                 .teamCity(team.getCity())
                 .teamStadium(team.getStadium())
@@ -37,6 +40,7 @@ public class RecommendResponse {
                 .teamCharacteristics(team.getCharacteristics())
                 .primaryColor(team.getPrimaryColor())
                 .logoUrl(team.getLogoUrl())
+                .beginnerGuide(team.getBeginnerGuide())
                 .reason(result.getReason())
                 .top3(top3)
                 .fanProfile(result.getFanProfile())

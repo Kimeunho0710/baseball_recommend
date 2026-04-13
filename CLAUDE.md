@@ -39,9 +39,10 @@ frontend/src/
 └── views/
     ├── HomeView.vue        홈 (히어로 + 팀 미리보기)
     ├── SurveyView.vue      설문 (진행바, A/B 선택, 슬라이드 전환)
-    ├── ResultView.vue      추천 결과 (Top 3, 팬 프로필, URL 공유)
+    ├── ResultView.vue      추천 결과 (Top 3, 팬 프로필, URL 공유, 온보딩 CTA)
+    ├── OnboardingView.vue  팬 입문 온보딩 (/onboarding/:id — 추천 이후 플로우)
     ├── TeamsView.vue       팀 목록 (그리드)
-    ├── TeamDetailView.vue  팀 상세 (통계, 특징, 선수, 감독, 입문가이드)
+    ├── TeamDetailView.vue  팀 상세 (콘텐츠 허브 — 아래 참고)
     ├── TeamCompareView.vue 팀 비교 (두 팀 나란히)
     └── StandingView.vue    순위표 (포스트시즌 강조)
 ```
@@ -93,6 +94,28 @@ frontend/src/
 - **팀별 짧은 매칭 이유**: 설문 답변과 연결된 한 줄 설명
 - **팬 성향 프로필 6종**: 감성 몰입형 / 전략 분석형 / 열정 응원형 / 전통 중시형 / 도전 선호형 / 차분 관조형
 
+### 입문자 온보딩 플로우 (`/onboarding/:id`)
+- **진입**: ResultView 하단 팀 색상 CTA 버튼 → `/onboarding/:id`
+- **구성 섹션** (단일 스크롤 페이지):
+  1. 왜 이 팀인가요? — recommend result의 reason
+  2. 꼭 알아야 할 팀 이야기 3가지 — 팀별 정적 데이터 (아이콘 + 제목 + 설명)
+  3. 입문자가 먼저 주목할 선수 3명 — `/api/teams/{teamId}/players` 상위 3명
+  4. 오늘 볼 수 있는 경기 — `/api/games/today` 팀 필터
+  5. 처음 팬이 된다면 이렇게 시작해보세요 — 팀별 3단계 가이드 + beginnerGuide
+- 선수/경기 데이터는 `Promise.allSettled`로 병렬 로드
+- `RecommendResponse`에 `teamId`, `beginnerGuide` 필드 추가 (백엔드)
+
+### 팀 상세 콘텐츠 허브 (`/teams/:id`)
+- **퀵 네비게이션**: 히어로 하단 섹션 앵커 링크 바
+- **기존 섹션**: 핵심 지표, 팀 소개, 팀 특징, 주요 선수, 감독, 역대 기록, 입문가이드
+- **신규 섹션** (팀별 정적 데이터 — `TEAM_EXTRA` 객체, 10개 팀 전체 정의):
+  - 이 팀을 좋아하게 되는 이유 — 2열 카드 그리드 (4개 이유)
+  - 팀 역사 타임라인 — 수직 타임라인 (주요 사건 강조 표시)
+  - 대표 응원 문화 — 아이콘 카드 3개
+  - 영원한 라이벌 — VS 카드 (양팀 고유 색상)
+  - 입문자가 꼭 봐야 할 경기 — 번호 + 제목 + 설명 3개
+  - 이 팀 팬은 보통 이런 스타일 — 이모지 + 제목 + 설명 + 태그 카드
+
 ### KBO 순위 스크래핑 (Standing)
 - 대상: https://www.koreabaseball.com/record/teamrank/teamrankdaily.aspx
 - 스크래핑: Jsoup HTTP 요청 (브라우저 없음)
@@ -138,6 +161,8 @@ npm run dev
 - [x] 팀 탐색 완성 (선수 도메인, 입문가이드, 팀 비교 페이지)
 - [x] 리그 데이터 확장 (오늘의 경기, 최근 결과, 최근 폼 — KBO WebService API + DB 캐시)
 - [x] 추천 정확도 강화 (Top 3 분석 + 팬 성향 프로필 6종)
+- [x] 입문자 온보딩 플로우 (`/onboarding/:id` — 추천 이후 5단계 가이드)
+- [x] 팀 상세 콘텐츠 허브 (역사 타임라인, 라이벌, 응원문화, 경기 추천, 팬 스타일)
 - [ ] 실제 Claude AI API 연동 (`infra/claude/ClaudeClient` 교체)
 - [ ] 결과 공유 기능 (카카오톡 공유)
 - [ ] 팀별 인기 통계

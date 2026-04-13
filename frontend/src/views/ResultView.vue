@@ -86,6 +86,15 @@
           </span>
         </div>
 
+        <!-- 온보딩 CTA -->
+        <RouterLink
+          :to="`/onboarding/${result.recommendId}`"
+          class="onboarding-cta"
+          :style="{ background: teamColor }"
+        >
+          ⚾ {{ result.teamName }} 팬 되기 시작하기
+        </RouterLink>
+
         <!-- 링크 복사 -->
         <button class="share-btn" @click="copyLink">
           {{ copied ? '✅ 링크 복사됨!' : '🔗 결과 링크 복사' }}
@@ -397,6 +406,28 @@ async function copyLink() {
   border-radius: 20px;
   font-size: 0.78rem;
   font-weight: 500;
+}
+
+/* ── 온보딩 CTA ── */
+.onboarding-cta {
+  display: block;
+  width: 100%;
+  padding: 16px;
+  border-radius: 14px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: white;
+  text-align: center;
+  text-decoration: none;
+  margin-bottom: 10px;
+  letter-spacing: 0.3px;
+  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.onboarding-cta:hover {
+  opacity: 0.88;
+  transform: translateY(-2px);
 }
 
 /* ── 공유 / 버튼 ── */
