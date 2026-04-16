@@ -4,6 +4,7 @@
 backend/src/main/resources/application.yml
 backend/src/main/resources/application-*.yml
 !backend/src/main/resources/application-example.yml
+!backend/src/main/resources/application-prod.yml
 
 # ============================
 # Java / Maven
