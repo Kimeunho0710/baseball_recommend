@@ -11,7 +11,16 @@ KBO 야구 입문자를 위한 팀 추천 서비스.
 - DB: MySQL (로컬: localhost:3306/baseball_recommend)
 - 스크래핑: Jsoup (KBO 순위 페이지, KBO WebService API)
 - AI: 현재 규칙 기반 점수 계산 (`ClaudeClient`) → 추후 Claude API 실제 연동 예정
+- 인증: Spring Security + JWT (JJWT 0.12.3)
 - 배포: Railway (Backend + MySQL) + Vercel (Frontend) — 완료
+
+## 브랜치 전략
+```
+main     ← 운영 (Railway 자동 배포)
+develop  ← 개발 통합 (기본 작업 브랜치)
+feature/* ← 기능 개발 (develop에서 분기)
+```
+흐름: `feature/*` → `develop` → `main` (PR or merge)
 
 ## 패키지 구조
 ```
@@ -23,43 +32,56 @@ com.baseball.recommend
 │   ├── player      선수 도메인 (팀별 선수 목록)
 │   ├── standing    순위 도메인 (KBO 스크래핑 + DB 캐시)
 │   ├── game        경기 도메인 (KBO WebService API + DB 캐시)
-│   └── member      회원 도메인 (미구현, 추후 추가)
+│   └── member      회원 도메인 (Member, MemberService, AuthController)
 ├── infra/claude    추천 엔진 (현재 규칙 기반, 추후 Claude API)
 └── global/
-    ├── config      CORS 설정 (CorsConfig), ObjectMapper 빈 (RestClientConfig)
+    ├── config      CORS (CorsConfig), Security (SecurityConfig), ObjectMapper (RestClientConfig)
+    ├── security    JWT (JwtUtil, JwtAuthenticationFilter)
     └── exception   공통 예외처리 (BusinessException, GlobalExceptionHandler, ErrorCode)
 ```
 
 ## 프론트엔드 구조
 ```
 frontend/src/
-├── api/surveyApi.js      모든 API 호출 함수
-├── router/index.js       페이지 라우팅
-├── stores/surveyStore.js Pinia 상태 관리
+├── api/
+│   ├── http.js        공통 axios 인스턴스 (JWT 인터셉터 포함)
+│   ├── surveyApi.js   팀/설문/추천/경기 API 호출
+│   └── authApi.js     회원가입/로그인/내 정보 API 호출
+├── router/index.js    페이지 라우팅
+├── stores/
+│   ├── surveyStore.js 설문 상태 관리
+│   └── authStore.js   인증 상태 관리 (localStorage 영속화)
 └── views/
-    ├── HomeView.vue        홈 (히어로 + 팀 미리보기)
+    ├── HomeView.vue        홈 (히어로 + 팀 미리보기 + 이전 추천 기록)
     ├── SurveyView.vue      설문 (진행바, A/B 선택, 슬라이드 전환)
     ├── ResultView.vue      추천 결과 (Top 3, 팬 프로필, URL 공유, 온보딩 CTA)
-    ├── OnboardingView.vue  팬 입문 온보딩 (/onboarding/:id — 추천 이후 플로우)
+    ├── OnboardingView.vue  팬 입문 온보딩 (/onboarding/:id)
     ├── TeamsView.vue       팀 목록 (그리드)
-    ├── TeamDetailView.vue  팀 상세 (콘텐츠 허브 — 아래 참고)
+    ├── TeamDetailView.vue  팀 상세 (콘텐츠 허브)
     ├── TeamCompareView.vue 팀 비교 (두 팀 나란히)
-    └── StandingView.vue    순위표 (포스트시즌 강조)
+    ├── StandingView.vue    순위표 (포스트시즌 강조)
+    ├── LoginView.vue       로그인
+    ├── SignupView.vue      회원가입
+    └── MyPageView.vue      내 페이지 (추천 기록 목록)
 ```
 
 ## API 엔드포인트
-| Method | URL | 설명 |
-|--------|-----|------|
-| GET | /api/teams | 전체 팀 목록 |
-| GET | /api/teams/{id} | 팀 상세 정보 |
-| GET | /api/teams/{id}/players | 팀 소속 선수 목록 |
-| GET | /api/survey/questions | 설문 질문 8개 |
-| POST | /api/survey/submit | 설문 제출 → 추천 결과 반환 |
-| GET | /api/recommend/{id} | 추천 결과 조회 |
-| GET | /api/standings | KBO 현재 순위 |
-| GET | /api/games/today | 오늘의 경기 일정/결과 |
-| GET | /api/games/recent | 최근 7일 경기 결과 (최대 15건) |
-| GET | /api/games/form/{teamName} | 팀 최근 5경기 폼 (W/L/D) |
+| Method | URL | 인증 | 설명 |
+|--------|-----|------|------|
+| GET | /api/teams | 불필요 | 전체 팀 목록 |
+| GET | /api/teams/{id} | 불필요 | 팀 상세 정보 |
+| GET | /api/teams/{id}/players | 불필요 | 팀 소속 선수 목록 |
+| GET | /api/survey/questions | 불필요 | 설문 질문 8개 |
+| POST | /api/survey/submit | 선택 | 설문 제출 → 추천 결과 반환 (로그인 시 기록 저장) |
+| GET | /api/recommend/{id} | 불필요 | 추천 결과 조회 |
+| GET | /api/standings | 불필요 | KBO 현재 순위 |
+| GET | /api/games/today | 불필요 | 오늘의 경기 일정/결과 |
+| GET | /api/games/recent | 불필요 | 최근 7일 경기 결과 (최대 15건) |
+| GET | /api/games/form/{teamName} | 불필요 | 팀 최근 5경기 폼 (W/L/D) |
+| POST | /api/auth/signup | 불필요 | 회원가입 → JWT 반환 |
+| POST | /api/auth/login | 불필요 | 로그인 → JWT 반환 |
+| GET | /api/auth/me | 필요 | 내 정보 조회 |
+| GET | /api/auth/me/recommendations | 필요 | 내 추천 기록 목록 |
 
 ## 구현 완료 기능
 
@@ -81,7 +103,8 @@ frontend/src/
 - `ClaudeClient`에 규칙 기반 로직 구현 (추후 실제 API로 교체 예정)
 - 설문 답변별 10개 팀에 가중치 점수 부여
 - 총점 최고 팀 선택 + 맞춤형 추천 이유 생성
-- 추천 결과 DB 저장 (RecommendResult: `reason`, `top3_json`, `fan_profile`, `fan_profile_description`)
+- 추천 결과 DB 저장 (RecommendResult: `reason`, `top3_json`, `fan_profile`, `fan_profile_description`, `member_id`)
+- 로그인 상태에서 설문 제출 시 member 자동 연동 (비로그인도 호환)
 
 ### 추천 결과 URL 공유
 - 결과 페이지 라우트: `/result/:id` → 고유 URL로 공유 가능
@@ -103,18 +126,12 @@ frontend/src/
   4. 오늘 볼 수 있는 경기 — `/api/games/today` 팀 필터
   5. 처음 팬이 된다면 이렇게 시작해보세요 — 팀별 3단계 가이드 + beginnerGuide
 - 선수/경기 데이터는 `Promise.allSettled`로 병렬 로드
-- `RecommendResponse`에 `teamId`, `beginnerGuide` 필드 추가 (백엔드)
 
 ### 팀 상세 콘텐츠 허브 (`/teams/:id`)
 - **퀵 네비게이션**: 히어로 하단 섹션 앵커 링크 바
 - **기존 섹션**: 핵심 지표, 팀 소개, 팀 특징, 주요 선수, 감독, 역대 기록, 입문가이드
-- **신규 섹션** (팀별 정적 데이터 — `TEAM_EXTRA` 객체, 10개 팀 전체 정의):
-  - 이 팀을 좋아하게 되는 이유 — 2열 카드 그리드 (4개 이유)
-  - 팀 역사 타임라인 — 수직 타임라인 (주요 사건 강조 표시)
-  - 대표 응원 문화 — 아이콘 카드 3개
-  - 영원한 라이벌 — VS 카드 (양팀 고유 색상)
-  - 입문자가 꼭 봐야 할 경기 — 번호 + 제목 + 설명 3개
-  - 이 팀 팬은 보통 이런 스타일 — 이모지 + 제목 + 설명 + 태그 카드
+- **신규 섹션** (팀별 정적 데이터 — `TEAM_EXTRA` 객체):
+  - 이 팀을 좋아하게 되는 이유, 팀 역사 타임라인, 대표 응원 문화, 영원한 라이벌, 입문자가 꼭 봐야 할 경기, 팬 스타일
 
 ### KBO 순위 스크래핑 (Standing)
 - 대상: https://www.koreabaseball.com/record/teamrank/teamrankdaily.aspx
@@ -126,23 +143,30 @@ frontend/src/
 
 ### 경기 일정/결과 스크래핑 (Game)
 - 데이터 소스: KBO 공식 WebService API (`koreabaseball.com/ws/Schedule.asmx/GetScheduleList`)
-  - 파라미터: `leId=1, srIdList=0,9,6 (정규시즌), seasonId, gameMonth, teamId`
-  - 이번달 1회 POST 요청으로 전체 월 데이터 수집 (오늘+7일이 다음달이면 다음달도 추가 수집)
-  - ※ 이전에 사용하던 네이버 스포츠 API(`gameCenter/gameList.nhn`)는 2026년 기준 404 폐기됨
 - **DB 캐시** (`game` 테이블): `(game_date, away_team, home_team)` unique 제약 → upsert 방식
 - 갱신 주기: 서버 시작 90초 후 최초 실행, 이후 30분마다 (`@Scheduled`)
-- DB에 데이터 있으면 DB 반환, 없으면 즉시 스크래핑 후 DB 저장
-- 팀 약칭 매핑: `KIA→KIA 타이거즈`, `NC→NC 다이노스` 등 약칭 → 정식명 (TEAM_NAME_MAP)
+- 팀 약칭 매핑: `KIA→KIA 타이거즈`, `NC→NC 다이노스` 등 (TEAM_NAME_MAP)
 - 실패 시: DB 데이터 유지 (스케줄) 또는 빈 목록 반환
+
+### 회원 시스템 (Member)
+- Member 엔티티: email(unique), password(BCrypt), nickname, role(USER/ADMIN), createdAt
+- Spring Security + Stateless 세션 + JWT 인증
+- `JwtUtil`: JJWT 0.12.3, HS256, 24시간 만료
+- `JwtAuthenticationFilter`: Authorization 헤더 파싱 → SecurityContext 설정
+- `POST /api/auth/signup`, `POST /api/auth/login` → AuthResponse(token, memberId, email, nickname)
+- `GET /api/auth/me`, `GET /api/auth/me/recommendations` → 인증 필요
+- 홈 화면: 이전 추천 기록 localStorage 캐시 → 팬 되기 / 결과 보기 버튼
 
 ## 개발 원칙
 - 확장성 고려한 도메인 분리 구조 유지
 - 프론트는 Vue Router + Pinia 구조 유지
 - 스크래핑 실패에 대비한 fallback 항상 유지
+- 작업은 develop 브랜치에서, 배포 시 main으로 머지
 
 ## 실행 방법
 ```bash
 # 백엔드 (포트 8080)
+# IntelliJ 활성화된 프로파일: local
 cd backend
 ./mvnw spring-boot:run
 
@@ -152,23 +176,26 @@ npm install   # 최초 1회
 npm run dev
 ```
 
+## 환경 설정
+| 파일 | 용도 | Git |
+|------|------|-----|
+| `application.yml` | 공통 설정 (JPA, JWT, logging) | 커밋 O |
+| `application-local.yml` | 로컬 DB 접속 (비밀번호 포함) | 커밋 X |
+| `application-prod.yml` | Railway 환경변수 참조 | 커밋 O |
+
+- 로컬 실행: IntelliJ **활성화된 프로파일** 칸에 `local` 입력
+- `application-local.yml`: DB URL/username/password 직접 입력
+
 ## 배포 정보
 - **Backend**: `https://baseballrecommend-production.up.railway.app`
-- **Frontend**: Vercel (baseball-recommend.vercel.app)
+- **Frontend**: Vercel (`baseball-recommend.vercel.app`)
 - **DB**: Railway MySQL (Backend 환경변수로 자동 연결)
-- Railway 환경변수: `SPRING_PROFILES_ACTIVE=prod`, `SPRING_DATASOURCE_URL/USERNAME/PASSWORD`
+- Railway 환경변수: `SPRING_PROFILES_ACTIVE=prod`, `SPRING_DATASOURCE_URL/USERNAME/PASSWORD`, `JWT_SECRET`
 - Vercel 환경변수: `VITE_API_URL=https://baseballrecommend-production.up.railway.app/api`
 
-## 환경 설정
-- `application.yml`: 환경변수 기반 (`${SPRING_DATASOURCE_URL}` 등), GitHub에 커밋됨 (비밀번호 없음)
-- `application-prod.yml`: Railway prod 프로파일용 (동일 구조, show-sql=false)
-- 로컬 실행 시: IntelliJ Run Configuration에서 환경변수 직접 설정 필요
-  - `SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/baseball_recommend?...`
-  - `SPRING_DATASOURCE_USERNAME=root`
-  - `SPRING_DATASOURCE_PASSWORD=<로컬 비밀번호>`
-
 ## 주의사항
-- `application-*.yml`은 gitignore (`application-prod.yml`은 예외 허용)
+- `application-local.yml`은 gitignore (비밀번호 포함)
+- Railway 배포 시 `JWT_SECRET` 환경변수 필수 (32자 이상)
 - Railway 크레딧 소진 시 서비스 자동 중단 (추가 비용 없음)
 
 ## 향후 추가 예정 기능
@@ -179,9 +206,11 @@ npm run dev
 - [x] 입문자 온보딩 플로우 (`/onboarding/:id` — 추천 이후 5단계 가이드)
 - [x] 팀 상세 콘텐츠 허브 (역사 타임라인, 라이벌, 응원문화, 경기 추천, 팬 스타일)
 - [x] Railway + Vercel 배포
+- [x] 회원 시스템 1단계 (Spring Security + JWT, 로그인/회원가입/마이페이지)
+- [ ] JWT Refresh Token (Access 1h + Refresh 7d, 자동 재발급)
+- [ ] 소셜 로그인 (카카오/구글 OAuth2)
 - [ ] 실제 Claude AI API 연동 (`infra/claude/ClaudeClient` 교체)
 - [ ] 결과 공유 기능 (카카오톡 공유)
 - [ ] 팀별 인기 통계
-- [ ] 회원 시스템 (`domain/member`, Spring Security + JWT)
 - [ ] RAG 기반 추천 (벡터 DB + Claude)
 - [ ] MCP 서버 연동
