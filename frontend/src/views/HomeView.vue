@@ -11,6 +11,34 @@
         <RouterLink to="/survey" class="start-btn">
           설문 시작하기 →
         </RouterLink>
+
+        <!-- 이전 추천 이력 -->
+        <div v-if="lastRecommend" class="last-recommend">
+          <p class="last-label">지난번 추천 결과</p>
+          <div class="last-card" :style="{ borderColor: teamColorMap[lastRecommend.teamName] }">
+            <div class="last-card-left">
+              <span class="last-team-name" :style="{ color: teamColorMap[lastRecommend.teamName] }">
+                ⚾ {{ lastRecommend.teamName }}
+              </span>
+              <span v-if="lastRecommend.fanProfile" class="last-profile">{{ lastRecommend.fanProfile }}</span>
+            </div>
+            <div class="last-card-btns">
+              <RouterLink
+                :to="`/onboarding/${lastRecommend.recommendId}`"
+                class="last-btn primary"
+                :style="{ background: teamColorMap[lastRecommend.teamName] }"
+              >
+                팬 되기 시작하기
+              </RouterLink>
+              <RouterLink
+                :to="`/result/${lastRecommend.recommendId}`"
+                class="last-btn secondary"
+              >
+                결과 보기
+              </RouterLink>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -31,7 +59,34 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
+
+const lastRecommend = ref(null)
+
+const teamColorMap = {
+  'KIA 타이거즈':  '#EA0029',
+  '삼성 라이온즈': '#074CA1',
+  'LG 트윈스':    '#C30452',
+  '두산 베어스':   '#4a4a8a',
+  'KT 위즈':      '#aaaaaa',
+  'SSG 랜더스':   '#CE0E2D',
+  '롯데 자이언츠': '#4a6fa5',
+  '한화 이글스':   '#FF6600',
+  'NC 다이노스':   '#2a5ca8',
+  '키움 히어로즈': '#820024',
+}
+
+onMounted(() => {
+  const saved = localStorage.getItem('lastRecommend')
+  if (saved) {
+    try {
+      lastRecommend.value = JSON.parse(saved)
+    } catch {
+      localStorage.removeItem('lastRecommend')
+    }
+  }
+})
 
 const teams = [
   { name: 'KIA 타이거즈', color: '#EA0029' },
@@ -97,6 +152,77 @@ const teams = [
 .start-btn:hover {
   background: #c73652;
   transform: translateY(-2px);
+}
+
+.last-recommend {
+  margin-top: 32px;
+}
+
+.last-label {
+  font-size: 0.75rem;
+  color: #a8d8ea;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.last-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px solid;
+  border-radius: 14px;
+  padding: 14px 20px;
+  flex-wrap: wrap;
+}
+
+.last-card-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+.last-team-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.last-profile {
+  font-size: 0.78rem;
+  color: #aaa;
+}
+
+.last-card-btns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.last-btn {
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity 0.2s, transform 0.2s;
+  white-space: nowrap;
+}
+
+.last-btn.primary {
+  color: white;
+}
+
+.last-btn.secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ccc;
+}
+
+.last-btn:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
 }
 
 .teams-preview {

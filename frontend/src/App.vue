@@ -7,6 +7,12 @@
           <RouterLink to="/teams">팀 정보</RouterLink>
           <RouterLink to="/standings">순위</RouterLink>
           <RouterLink to="/survey" class="nav-cta">팀 추천받기</RouterLink>
+          <template v-if="authStore.isLoggedIn">
+            <RouterLink to="/my" class="nav-user">{{ authStore.user?.nickname }}</RouterLink>
+          </template>
+          <template v-else>
+            <RouterLink to="/login" class="nav-login">로그인</RouterLink>
+          </template>
         </div>
       </div>
     </nav>
@@ -16,6 +22,9 @@
 
 <script setup>
 import { RouterView, RouterLink } from 'vue-router'
+import { useAuthStore } from './stores/authStore'
+
+const authStore = useAuthStore()
 </script>
 
 <style>
@@ -78,5 +87,18 @@ body { font-family: 'Pretendard', 'Noto Sans KR', sans-serif; }
 
 .nav-cta:hover {
   background: #c73652;
+}
+
+.nav-login {
+  color: #a8d8ea !important;
+  font-weight: 600;
+}
+
+.nav-user {
+  color: white !important;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 6px 14px;
+  border-radius: 16px;
 }
 </style>

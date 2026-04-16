@@ -20,7 +20,12 @@ public enum ErrorCode {
     INVALID_SURVEY_ANSWER(HttpStatus.BAD_REQUEST, "유효하지 않은 설문 답변입니다."),
 
     // Claude
-    CLAUDE_API_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "AI 추천 중 오류가 발생했습니다.");
+    CLAUDE_API_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "AI 추천 중 오류가 발생했습니다."),
+
+    // Auth
+    DUPLICATE_EMAIL(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
+    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."),
+    UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
 
     private final HttpStatus httpStatus;
     private final String message;

@@ -1,5 +1,6 @@
 package com.baseball.recommend.domain.recommend;
 
+import com.baseball.recommend.domain.member.Member;
 import com.baseball.recommend.domain.recommend.dto.RecommendResponse;
 import com.baseball.recommend.domain.recommend.dto.TeamRankItem;
 import com.baseball.recommend.domain.survey.SurveyResult;
@@ -10,6 +11,8 @@ import com.baseball.recommend.infra.claude.dto.ClaudeRecommendResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +39,7 @@ public class RecommendService {
         RecommendResult result = RecommendResult.builder()
                 .surveyResultId(surveyResult.getId())
                 .team(team)
+                .member(getCurrentMember())
                 .reason(claudeResult.getReason())
                 .top3Json(top3Json)
                 .fanProfile(claudeResult.getFanProfile())
@@ -47,6 +51,14 @@ public class RecommendService {
                 surveyResult.getId(), team.getName(), claudeResult.getFanProfile());
 
         return RecommendResponse.from(saved, claudeResult.getTop3());
+    }
+
+    private Member getCurrentMember() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof Member member) {
+            return member;
+        }
+        return null;
     }
 
     private String serializeTop3(List<TeamRankItem> top3) {

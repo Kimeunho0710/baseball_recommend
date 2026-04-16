@@ -30,6 +30,13 @@ export const useSurveyStore = defineStore('survey', () => {
     error.value = null
     try {
       result.value = await submitSurvey(answers.value)
+      // 홈에서 이력 표시를 위해 핵심 정보 저장
+      localStorage.setItem('lastRecommend', JSON.stringify({
+        recommendId: result.value.recommendId,
+        teamName: result.value.teamName,
+        teamId: result.value.teamId,
+        fanProfile: result.value.fanProfile,
+      }))
       return result.value
     } catch (e) {
       error.value = 'AI 추천 중 오류가 발생했습니다. 다시 시도해주세요.'

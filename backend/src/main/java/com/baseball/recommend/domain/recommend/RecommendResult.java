@@ -1,5 +1,6 @@
 package com.baseball.recommend.domain.recommend;
 
+import com.baseball.recommend.domain.member.Member;
 import com.baseball.recommend.domain.team.Team;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -26,6 +27,10 @@ public class RecommendResult {
     @JoinColumn(name = "team_id", nullable = false)
     private Team team;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "member_id")
+    private Member member;
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String reason;
 
@@ -47,10 +52,11 @@ public class RecommendResult {
     }
 
     @Builder
-    public RecommendResult(Long surveyResultId, Team team, String reason,
+    public RecommendResult(Long surveyResultId, Team team, Member member, String reason,
                            String top3Json, String fanProfile, String fanProfileDescription) {
         this.surveyResultId = surveyResultId;
         this.team = team;
+        this.member = member;
         this.reason = reason;
         this.top3Json = top3Json;
         this.fanProfile = fanProfile;

@@ -1,9 +1,6 @@
-import axios from 'axios'
+import http from './http'
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
-  headers: { 'Content-Type': 'application/json' }
-})
+const api = http
 
 export async function fetchQuestions() {
   const { data } = await api.get('/survey/questions')

@@ -7,6 +7,9 @@ import TeamsView from '../views/TeamsView.vue'
 import TeamDetailView from '../views/TeamDetailView.vue'
 import TeamCompareView from '../views/TeamCompareView.vue'
 import StandingView from '../views/StandingView.vue'
+import LoginView from '../views/LoginView.vue'
+import SignupView from '../views/SignupView.vue'
+import MyPageView from '../views/MyPageView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -18,7 +21,10 @@ const router = createRouter({
     { path: '/teams', name: 'teams', component: TeamsView },
     { path: '/teams/:id', name: 'team-detail', component: TeamDetailView },
     { path: '/compare', name: 'compare', component: TeamCompareView },
-    { path: '/standings', name: 'standings', component: StandingView }
+    { path: '/standings', name: 'standings', component: StandingView },
+    { path: '/login', name: 'login', component: LoginView },
+    { path: '/signup', name: 'signup', component: SignupView },
+    { path: '/my', name: 'my', component: MyPageView },
   ]
 })
 
