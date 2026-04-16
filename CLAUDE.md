@@ -11,7 +11,7 @@ KBO 야구 입문자를 위한 팀 추천 서비스.
 - DB: MySQL (로컬: localhost:3306/baseball_recommend)
 - 스크래핑: Jsoup (KBO 순위 페이지, KBO WebService API)
 - AI: 현재 규칙 기반 점수 계산 (`ClaudeClient`) → 추후 Claude API 실제 연동 예정
-- 배포: AWS (EC2, RDS, S3, CloudFront) — 예정
+- 배포: Railway (Backend + MySQL) + Vercel (Frontend) — 완료
 
 ## 패키지 구조
 ```
@@ -152,9 +152,24 @@ npm install   # 최초 1회
 npm run dev
 ```
 
+## 배포 정보
+- **Backend**: `https://baseballrecommend-production.up.railway.app`
+- **Frontend**: Vercel (baseball-recommend.vercel.app)
+- **DB**: Railway MySQL (Backend 환경변수로 자동 연결)
+- Railway 환경변수: `SPRING_PROFILES_ACTIVE=prod`, `SPRING_DATASOURCE_URL/USERNAME/PASSWORD`
+- Vercel 환경변수: `VITE_API_URL=https://baseballrecommend-production.up.railway.app/api`
+
+## 환경 설정
+- `application.yml`: 환경변수 기반 (`${SPRING_DATASOURCE_URL}` 등), GitHub에 커밋됨 (비밀번호 없음)
+- `application-prod.yml`: Railway prod 프로파일용 (동일 구조, show-sql=false)
+- 로컬 실행 시: IntelliJ Run Configuration에서 환경변수 직접 설정 필요
+  - `SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/baseball_recommend?...`
+  - `SPRING_DATASOURCE_USERNAME=root`
+  - `SPRING_DATASOURCE_PASSWORD=<로컬 비밀번호>`
+
 ## 주의사항
-- `application.yml`에 DB 비밀번호 평문 포함 → GitHub 업로드 금지
-- `.gitignore`에 `backend/src/main/resources/application.yml` 추가 필요
+- `application-*.yml`은 gitignore (`application-prod.yml`은 예외 허용)
+- Railway 크레딧 소진 시 서비스 자동 중단 (추가 비용 없음)
 
 ## 향후 추가 예정 기능
 - [x] 추천 결과 URL 공유 (`/result/:id`, 링크 복사 버튼)
@@ -163,6 +178,7 @@ npm run dev
 - [x] 추천 정확도 강화 (Top 3 분석 + 팬 성향 프로필 6종)
 - [x] 입문자 온보딩 플로우 (`/onboarding/:id` — 추천 이후 5단계 가이드)
 - [x] 팀 상세 콘텐츠 허브 (역사 타임라인, 라이벌, 응원문화, 경기 추천, 팬 스타일)
+- [x] Railway + Vercel 배포
 - [ ] 실제 Claude AI API 연동 (`infra/claude/ClaudeClient` 교체)
 - [ ] 결과 공유 기능 (카카오톡 공유)
 - [ ] 팀별 인기 통계
