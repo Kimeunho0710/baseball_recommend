@@ -14,6 +14,10 @@
 
         <div v-if="loading" class="state-box">불러오는 중...</div>
 
+        <div v-else-if="fetchError" class="state-box error-box">
+          <p>{{ fetchError }}</p>
+        </div>
+
         <div v-else-if="recommendations.length === 0" class="state-box">
           <p>아직 추천 기록이 없습니다.</p>
           <RouterLink to="/survey" class="survey-btn">설문 시작하기 →</RouterLink>
@@ -65,6 +69,7 @@ const authStore = useAuthStore()
 
 const recommendations = ref([])
 const loading = ref(false)
+const fetchError = ref(null)
 
 const teamColorMap = {
   'KIA 타이거즈':  '#EA0029',
@@ -85,10 +90,16 @@ onMounted(async () => {
     return
   }
   loading.value = true
+  fetchError.value = null
   try {
     recommendations.value = await fetchMyRecommendations()
-  } catch {
-    // 로드 실패 시 빈 목록 유지
+  } catch (e) {
+    if (e.response?.status === 401) {
+      authStore.logout()
+      router.push('/login')
+      return
+    }
+    fetchError.value = '추천 기록을 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
   } finally {
     loading.value = false
   }
@@ -100,7 +111,12 @@ function handleLogout() {
 }
 
 function formatDate(dateStr) {
-  const d = new Date(dateStr)
+  if (!dateStr) return ''
+  // LocalDateTime 배열([2024,1,1,...]) 또는 ISO 문자열 모두 처리
+  const d = Array.isArray(dateStr)
+    ? new Date(dateStr[0], dateStr[1] - 1, dateStr[2])
+    : new Date(dateStr)
+  if (isNaN(d.getTime())) return ''
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
 }
 </script>
@@ -166,6 +182,11 @@ function formatDate(dateStr) {
   padding: 40px 0;
   color: #888;
   font-size: 0.9rem;
+}
+
+.error-box {
+  color: #ff8a8a;
+  font-size: 0.88rem;
 }
 
 .survey-btn {

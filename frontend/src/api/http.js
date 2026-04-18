@@ -14,7 +14,7 @@ http.interceptors.request.use(config => {
   return config
 })
 
-// 응답 인터셉터: 401 시 토큰 제거
+// 응답 인터셉터: 401 시 토큰 제거 (인증 상태 정리만, 리다이렉트는 각 컴포넌트에서 처리)
 http.interceptors.response.use(
   response => response,
   error => {

@@ -21,10 +21,16 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
 import { RouterView, RouterLink } from 'vue-router'
 import { useAuthStore } from './stores/authStore'
 
 const authStore = useAuthStore()
+
+// 앱 시작 시 저장된 토큰의 유효성 검증
+onMounted(() => {
+  authStore.verifySession()
+})
 </script>
 
 <style>
