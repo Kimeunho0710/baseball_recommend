@@ -94,19 +94,17 @@ onMounted(async () => {
   try {
     recommendations.value = await fetchMyRecommendations()
   } catch (e) {
-    if (e.response?.status === 401) {
-      authStore.logout()
-      router.push('/login')
-      return
+    // 401: http.js 인터셉터가 refresh → 성공 시 자동 재시도, 실패 시 /login 리다이렉트
+    if (e.response?.status !== 401) {
+      fetchError.value = '추천 기록을 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
     }
-    fetchError.value = '추천 기록을 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
   } finally {
     loading.value = false
   }
 })
 
-function handleLogout() {
-  authStore.logout()
+async function handleLogout() {
+  await authStore.logout()
   router.push('/')
 }
 

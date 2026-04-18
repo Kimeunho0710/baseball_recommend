@@ -19,3 +19,7 @@ export async function fetchMyRecommendations() {
   const { data } = await http.get('/auth/me/recommendations')
   return data
 }
+
+export async function logout() {
+  await http.post('/auth/logout')
+}

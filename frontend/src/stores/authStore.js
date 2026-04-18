@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { login as apiLogin, signup as apiSignup, fetchMe } from '../api/authApi'
+import { login as apiLogin, signup as apiSignup, logout as apiLogout } from '../api/authApi'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token') || null)
@@ -20,22 +20,13 @@ export const useAuthStore = defineStore('auth', () => {
     return data
   }
 
-  function logout() {
-    token.value = null
-    user.value = null
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-  }
-
-  // 앱 시작 시 localStorage의 토큰이 유효한지 서버에서 검증
-  async function verifySession() {
-    if (!token.value) return
+  async function logout() {
     try {
-      const data = await fetchMe()
-      user.value = { memberId: data.memberId, email: data.email, nickname: data.nickname }
+      await apiLogout()  // 서버: DB에서 Refresh Token 삭제 + 쿠키 만료
     } catch {
-      // 토큰이 만료되었거나 유효하지 않으면 로그아웃
-      logout()
+      // 서버 요청 실패(네트워크 오류 등)해도 로컬 상태는 반드시 정리
+    } finally {
+      _clearAuth()
     }
   }
 
@@ -46,5 +37,12 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('user', JSON.stringify(user.value))
   }
 
-  return { token, user, isLoggedIn, login, signup, logout, verifySession }
+  function _clearAuth() {
+    token.value = null
+    user.value = null
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+  }
+
+  return { token, user, isLoggedIn, login, signup, logout }
 })
