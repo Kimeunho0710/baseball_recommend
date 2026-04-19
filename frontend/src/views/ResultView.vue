@@ -95,10 +95,16 @@
           ⚾ {{ result.teamName }} 팬 되기 시작하기
         </RouterLink>
 
-        <!-- 링크 복사 -->
-        <button class="share-btn" @click="copyLink">
-          {{ copied ? '✅ 링크 복사됨!' : '🔗 결과 링크 복사' }}
-        </button>
+        <!-- 공유 버튼 -->
+        <div class="share-btns">
+          <button class="share-btn kakao" @click="shareKakao">
+            <img src="https://developers.kakao.com/assets/img/about/logos/kakaolink/kakaolink_btn_small.png" alt="kakao" />
+            카카오톡 공유
+          </button>
+          <button class="share-btn link" @click="copyLink">
+            {{ copied ? '✅ 복사됨!' : '🔗 링크 복사' }}
+          </button>
+        </div>
 
         <div class="action-btns">
           <RouterLink to="/survey" class="btn retry">다시 해보기</RouterLink>
@@ -123,6 +129,7 @@ const result = ref(null)
 const loading = ref(false)
 const error = ref(null)
 const copied = ref(false)
+const KAKAO_KEY = '1c796fbb30a11c91f612fffafb9a15b4'
 
 const teamColorMap = {
   'KIA 타이거즈':  '#EA0029',
@@ -164,6 +171,10 @@ const characteristics = computed(() =>
 )
 
 onMounted(async () => {
+  if (window.Kakao && !window.Kakao.isInitialized()) {
+    window.Kakao.init(KAKAO_KEY)
+  }
+
   const id = route.params.id
 
   if (store.result && String(store.result.recommendId) === String(id)) {
@@ -180,6 +191,37 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+function shareKakao() {
+  if (!window.Kakao?.isInitialized()) return
+  window.Kakao.Share.sendDefault({
+    objectType: 'feed',
+    content: {
+      title: `나는 ${result.value.teamName} 팬!`,
+      description: result.value.fanProfile
+        ? `${result.value.fanProfile} — ${result.value.reason?.slice(0, 60)}...`
+        : result.value.reason?.slice(0, 80) + '...',
+      imageUrl: 'https://baseball-recommend.vercel.app/og-image.png',
+      link: {
+        mobileWebUrl: window.location.href,
+        webUrl: window.location.href,
+      },
+    },
+    buttons: [
+      {
+        title: '내 추천 결과 보기',
+        link: { mobileWebUrl: window.location.href, webUrl: window.location.href },
+      },
+      {
+        title: '나도 해보기',
+        link: {
+          mobileWebUrl: `${window.location.origin}/survey`,
+          webUrl: `${window.location.origin}/survey`,
+        },
+      },
+    ],
+  })
+}
 
 async function copyLink() {
   await navigator.clipboard.writeText(window.location.href)
@@ -430,23 +472,47 @@ async function copyLink() {
   transform: translateY(-2px);
 }
 
-/* ── 공유 / 버튼 ── */
+/* ── 공유 버튼 ── */
+.share-btns {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
 .share-btn {
-  width: 100%;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   padding: 13px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.07);
-  color: white;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
-  margin-bottom: 10px;
-  transition: background 0.2s;
+  transition: opacity 0.2s, transform 0.2s;
+  border: none;
 }
 
 .share-btn:hover {
-  background: rgba(255, 255, 255, 0.13);
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.share-btn.kakao {
+  background: #FEE500;
+  color: #3C1E1E;
+}
+
+.share-btn.kakao img {
+  width: 18px;
+  height: 18px;
+}
+
+.share-btn.link {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .action-btns {

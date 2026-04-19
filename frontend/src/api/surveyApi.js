@@ -51,3 +51,8 @@ export async function fetchTeamForm(teamName) {
   const { data } = await api.get(`/games/form/${encodeURIComponent(teamName)}`)
   return data
 }
+
+export async function fetchPopularTeams() {
+  const { data } = await api.get('/recommend/popular-teams')
+  return data
+}

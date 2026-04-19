@@ -207,10 +207,10 @@ npm run dev
 - [x] 팀 상세 콘텐츠 허브 (역사 타임라인, 라이벌, 응원문화, 경기 추천, 팬 스타일)
 - [x] Railway + Vercel 배포
 - [x] 회원 시스템 1단계 (Spring Security + JWT, 로그인/회원가입/마이페이지)
-- [ ] JWT Refresh Token (Access 1h + Refresh 7d, 자동 재발급)
+- [x] JWT Refresh Token (Access 1h + Refresh 7d, 자동 재발급)
 - [ ] 소셜 로그인 (카카오/구글 OAuth2)
 - [ ] 실제 Claude AI API 연동 (`infra/claude/ClaudeClient` 교체)
-- [ ] 결과 공유 기능 (카카오톡 공유)
-- [ ] 팀별 인기 통계
+- [x] 결과 공유 기능 (카카오톡 공유 + 링크 복사, 결과 페이지)
+- [x] 팀별 인기 통계 (`GET /api/recommend/popular-teams`, 홈 화면 바 차트)
 - [ ] RAG 기반 추천 (벡터 DB + Claude)
 - [ ] MCP 서버 연동

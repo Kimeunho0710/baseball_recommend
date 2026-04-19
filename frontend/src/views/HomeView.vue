@@ -42,6 +42,32 @@
       </div>
     </div>
 
+    <!-- 인기 팀 통계 -->
+    <div class="popular-section">
+      <h2>사람들이 가장 많이 추천받은 팀</h2>
+      <p class="popular-subtitle">지금까지 설문을 완료한 모든 사용자 기준</p>
+      <div v-if="popularTeams.length" class="popular-list">
+        <div
+          v-for="(team, index) in popularTeams"
+          :key="team.teamName"
+          class="popular-item"
+        >
+          <div class="popular-rank" :style="{ color: team.primaryColor }">{{ index + 1 }}</div>
+          <div class="popular-info">
+            <div class="popular-name">{{ team.teamName }}</div>
+            <div class="popular-bar-wrap">
+              <div
+                class="popular-bar"
+                :style="{ width: team.percentage + '%', background: team.primaryColor }"
+              ></div>
+            </div>
+          </div>
+          <div class="popular-pct" :style="{ color: team.primaryColor }">{{ team.percentage }}%</div>
+        </div>
+      </div>
+      <div v-else class="popular-empty">아직 추천 데이터가 없습니다.</div>
+    </div>
+
     <div class="teams-preview">
       <h2>KBO 10개 팀</h2>
       <div class="team-list">
@@ -61,8 +87,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
+import { fetchPopularTeams } from '@/api/surveyApi'
 
 const lastRecommend = ref(null)
+const popularTeams = ref([])
 
 const teamColorMap = {
   'KIA 타이거즈':  '#EA0029',
@@ -77,7 +105,7 @@ const teamColorMap = {
   '키움 히어로즈': '#820024',
 }
 
-onMounted(() => {
+onMounted(async () => {
   const saved = localStorage.getItem('lastRecommend')
   if (saved) {
     try {
@@ -85,6 +113,12 @@ onMounted(() => {
     } catch {
       localStorage.removeItem('lastRecommend')
     }
+  }
+
+  try {
+    popularTeams.value = await fetchPopularTeams()
+  } catch {
+    // 통계 실패는 무시
   }
 })
 
@@ -223,6 +257,86 @@ const teams = [
 .last-btn:hover {
   opacity: 0.85;
   transform: translateY(-1px);
+}
+
+.popular-section {
+  padding: 40px 20px;
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.popular-section h2 {
+  font-size: 1.4rem;
+  margin-bottom: 8px;
+  color: #a8d8ea;
+}
+
+.popular-subtitle {
+  font-size: 0.8rem;
+  color: #777;
+  margin-bottom: 28px;
+}
+
+.popular-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.popular-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+
+.popular-rank {
+  font-size: 1.3rem;
+  font-weight: 800;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.popular-info {
+  flex: 1;
+  text-align: left;
+}
+
+.popular-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.popular-bar-wrap {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.popular-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+.popular-pct {
+  font-size: 0.85rem;
+  font-weight: 700;
+  width: 38px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.popular-empty {
+  color: #666;
+  font-size: 0.9rem;
+  padding: 20px;
 }
 
 .teams-preview {

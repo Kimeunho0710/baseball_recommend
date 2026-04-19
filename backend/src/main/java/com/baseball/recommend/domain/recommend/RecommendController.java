@@ -1,5 +1,6 @@
 package com.baseball.recommend.domain.recommend;
 
+import com.baseball.recommend.domain.recommend.dto.PopularTeamDto;
 import com.baseball.recommend.domain.recommend.dto.RecommendResponse;
 import com.baseball.recommend.domain.recommend.dto.TeamRankItem;
 import com.baseball.recommend.global.exception.BusinessException;
@@ -21,6 +22,16 @@ public class RecommendController {
 
     private final RecommendRepository recommendRepository;
     private final ObjectMapper objectMapper;
+
+    @GetMapping("/popular-teams")
+    public ResponseEntity<List<PopularTeamDto>> getPopularTeams() {
+        List<Object[]> rows = recommendRepository.countByTeam();
+        long total = rows.stream().mapToLong(r -> (Long) r[2]).sum();
+        List<PopularTeamDto> result = rows.stream()
+                .map(r -> PopularTeamDto.of((String) r[0], (String) r[1], (Long) r[2], total))
+                .toList();
+        return ResponseEntity.ok(result);
+    }
 
     @GetMapping("/{id}")
     public ResponseEntity<RecommendResponse> getResult(@PathVariable Long id) {
