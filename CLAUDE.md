@@ -2,7 +2,7 @@
 
 ## 프로젝트 개요
 KBO 야구 입문자를 위한 팀 추천 서비스.
-성향 설문(8문항 A/B)을 기반으로 KBO 10개 팀 중 맞는 팀을 추천해줌.
+성향 설문(8문항 A/B/C/D 4지선다)을 기반으로 KBO 10개 팀 중 맞는 팀을 추천해줌.
 추후 RAG, MCP, Claude AI API 등 AI 기능 추가 예정이며 확장성 있게 설계.
 
 ## 기술 스택
@@ -53,7 +53,7 @@ frontend/src/
 │   └── authStore.js   인증 상태 관리 (localStorage 영속화)
 └── views/
     ├── HomeView.vue        홈 (히어로 + 팀 미리보기 + 이전 추천 기록)
-    ├── SurveyView.vue      설문 (진행바, A/B 선택, 슬라이드 전환)
+    ├── SurveyView.vue      설문 (진행바, A/B/C/D 4지선다, 힌트 박스, 슬라이드 전환)
     ├── ResultView.vue      추천 결과 (Top 3, 팬 프로필, URL 공유, 온보딩 CTA)
     ├── OnboardingView.vue  팬 입문 온보딩 (/onboarding/:id)
     ├── TeamsView.vue       팀 목록 (그리드)
@@ -95,8 +95,11 @@ frontend/src/
 - DataInitializer에서 팀별 선수 데이터 함께 초기화
 
 ### 성향 설문
-- 8문항 A/B 선택형 설문
-- 외향/내향, 논리/감성, 계획/즉흥, 도전/안정 등 8개 차원 측정
+- 8문항 A/B/C/D 4지선다 설문 (경우의 수 65,536가지)
+- Q1~Q4: 야구장·관람 상황 기반 / Q5~Q8: 일상 성향 기반
+- 야구 용어 포함 문항(Q2 9회말 2아웃, Q3 직관, Q4 10연패)에 💡 힌트 문구 표시 (입문자 배려)
+- `QuestionDto`에 `hint` 필드 추가 (null이면 프론트에서 미표시)
+- 프론트: 선택지 2열 그리드 + A/B/C/D 라벨 (모바일 1열)
 - 설문 답변 JSON으로 DB 저장 (SurveyResult)
 
 ### 팀 추천 (규칙 기반)
@@ -208,6 +211,7 @@ npm run dev
 - [x] Railway + Vercel 배포
 - [x] 회원 시스템 1단계 (Spring Security + JWT, 로그인/회원가입/마이페이지)
 - [x] JWT Refresh Token (Access 1h + Refresh 7d, 자동 재발급)
+- [x] 설문 고도화 (8문항 A/B → A/B/C/D 4지선다, 경우의 수 256 → 65,536, 힌트 문구 추가)
 - [ ] 소셜 로그인 (카카오/구글 OAuth2)
 - [ ] 실제 Claude AI API 연동 (`infra/claude/ClaudeClient` 교체)
 - [x] 결과 공유 기능 (카카오톡 공유 + 링크 복사, 결과 페이지)
