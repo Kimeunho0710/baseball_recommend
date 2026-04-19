@@ -201,6 +201,7 @@ docker-compose up --build
 | `application.yml` | 공통 설정 (JPA, JWT, logging) | 커밋 O |
 | `application-local.yml` | 로컬 DB 접속 (비밀번호 포함) | 커밋 X |
 | `application-prod.yml` | Railway 환경변수 참조 | 커밋 O |
+| `application-docker.yml` | Docker Compose용 DB 설정 (mysql 호스트) | 커밋 O |
 
 - 로컬 실행: IntelliJ **활성화된 프로파일** 칸에 `local` 입력
 - `application-local.yml`: DB URL/username/password 직접 입력
@@ -229,6 +230,8 @@ docker-compose up --build
 - [x] JWT Refresh Token (Access 1h + Refresh 7d, 자동 재발급)
 - [x] 설문 고도화 (8문항 A/B → A/B/C/D 4지선다, 경우의 수 256 → 65,536, 힌트 문구 추가)
 - [x] Docker Compose (MySQL + Backend + Frontend, Nginx 프록시, 멀티스테이지 빌드)
+- [x] GitHub Actions CI (Backend+MySQL 서비스 컨테이너 / Frontend 빌드 / Docker 이미지 빌드 검증)
+- [ ] Redis 캐싱 (순위·경기 데이터 DB 캐시 → Redis TTL 캐시)
 - [ ] 소셜 로그인 (카카오/구글 OAuth2)
 - [ ] 실제 Claude AI API 연동 (`infra/claude/ClaudeClient` 교체)
 - [x] 결과 공유 기능 (카카오톡 공유 + 링크 복사, 결과 페이지)
