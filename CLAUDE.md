@@ -167,6 +167,8 @@ frontend/src/
 - 작업은 develop 브랜치에서, 배포 시 main으로 머지
 
 ## 실행 방법
+
+### 로컬 개발 (IDE)
 ```bash
 # 백엔드 (포트 8080)
 # IntelliJ 활성화된 프로파일: local
@@ -178,6 +180,20 @@ cd frontend
 npm install   # 최초 1회
 npm run dev
 ```
+
+### Docker Compose
+```bash
+# 최초 1회: 환경변수 파일 생성
+cp .env.example .env
+
+# 전체 실행 (MySQL + Backend + Frontend)
+docker-compose up --build
+
+# 접속: http://localhost:3000
+# MySQL: localhost:3307 (로컬 3306 충돌 방지)
+```
+- `SPRING_PROFILES_ACTIVE=docker` → `application-docker.yml` 적용 (MySQL 호스트: `mysql`)
+- Frontend Nginx가 `/api` → `backend:8080` 프록시 (VITE_API_URL 불필요)
 
 ## 환경 설정
 | 파일 | 용도 | Git |
@@ -212,6 +228,7 @@ npm run dev
 - [x] 회원 시스템 1단계 (Spring Security + JWT, 로그인/회원가입/마이페이지)
 - [x] JWT Refresh Token (Access 1h + Refresh 7d, 자동 재발급)
 - [x] 설문 고도화 (8문항 A/B → A/B/C/D 4지선다, 경우의 수 256 → 65,536, 힌트 문구 추가)
+- [x] Docker Compose (MySQL + Backend + Frontend, Nginx 프록시, 멀티스테이지 빌드)
 - [ ] 소셜 로그인 (카카오/구글 OAuth2)
 - [ ] 실제 Claude AI API 연동 (`infra/claude/ClaudeClient` 교체)
 - [x] 결과 공유 기능 (카카오톡 공유 + 링크 복사, 결과 페이지)

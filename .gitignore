@@ -4,6 +4,7 @@
 backend/src/main/resources/application-*.yml
 !backend/src/main/resources/application-example.yml
 !backend/src/main/resources/application-prod.yml
+!backend/src/main/resources/application-docker.yml
 # application-local.yml 은 gitignored (위 패턴에서 자동 제외)
 
 # ============================
@@ -37,6 +38,11 @@ frontend/.env.local
 # ============================
 .DS_Store
 Thumbs.db
+
+# ============================
+# Docker
+# ============================
+.env
 
 # ============================
 # Claude Code
