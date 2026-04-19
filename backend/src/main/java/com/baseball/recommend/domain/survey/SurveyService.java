@@ -22,59 +22,78 @@ public class SurveyService {
         return List.of(
             QuestionDto.builder()
                 .id("q1")
-                .question("주말에 나는 주로?")
+                .question("야구장에 처음 갔을 때, 나는?")
                 .options(List.of(
-                    QuestionDto.OptionDto.builder().value("A").text("친구들과 활발하게 어울리는 편이다").build(),
-                    QuestionDto.OptionDto.builder().value("B").text("혼자 조용히 쉬는 것을 좋아한다").build()
+                    QuestionDto.OptionDto.builder().value("A").text("응원단석 한가운데로 바로 뛰어들어 응원가를 따라 부른다").build(),
+                    QuestionDto.OptionDto.builder().value("B").text("치어리더·선수 잘 보이는 자리에서 경기를 집중해서 본다").build(),
+                    QuestionDto.OptionDto.builder().value("C").text("맛있는 거 먹으면서 분위기만 즐긴다").build(),
+                    QuestionDto.OptionDto.builder().value("D").text("타율·방어율 앱 켜놓고 데이터 보면서 관전한다").build()
                 )).build(),
             QuestionDto.builder()
                 .id("q2")
-                .question("중요한 결정을 내릴 때 나는?")
+                .question("내 팀이 9회말 2아웃 역전 상황. 나의 반응은?")
+                .hint("9회말 2아웃 — 야구에서 가장 극적인 마지막 순간. 한 번만 더 아웃되면 경기 끝!")
                 .options(List.of(
-                    QuestionDto.OptionDto.builder().value("A").text("논리와 데이터를 기반으로 판단한다").build(),
-                    QuestionDto.OptionDto.builder().value("B").text("느낌과 감정을 더 중요시한다").build()
+                    QuestionDto.OptionDto.builder().value("A").text("눈물이 핑 돌면서 손이 떨린다").build(),
+                    QuestionDto.OptionDto.builder().value("B").text("\"저 타자 성공 확률이 얼마야?\" 냉정하게 따진다").build(),
+                    QuestionDto.OptionDto.builder().value("C").text("일단 자리에서 일어나 소리를 지른다").build(),
+                    QuestionDto.OptionDto.builder().value("D").text("긴장돼서 못 보고 핸드폰만 들여다본다").build()
                 )).build(),
             QuestionDto.builder()
                 .id("q3")
-                .question("나의 생활 방식은?")
+                .question("직관 갈 때 같이 가고 싶은 사람은?")
+                .hint("직관 — 야구장에 직접 가서 관람하는 것")
                 .options(List.of(
-                    QuestionDto.OptionDto.builder().value("A").text("계획을 세우고 체계적으로 실행한다").build(),
-                    QuestionDto.OptionDto.builder().value("B").text("그때그때 상황에 맞게 유연하게 대처한다").build()
+                    QuestionDto.OptionDto.builder().value("A").text("응원가 다 외운 찐팬 친구").build(),
+                    QuestionDto.OptionDto.builder().value("B").text("야구 몰라도 분위기 좋아하는 친구").build(),
+                    QuestionDto.OptionDto.builder().value("C").text("혼자 조용히 집중해서 보고 싶다").build(),
+                    QuestionDto.OptionDto.builder().value("D").text("야구 규칙·전술 설명해줄 수 있는 친구").build()
                 )).build(),
             QuestionDto.builder()
                 .id("q4")
-                .question("새로운 도전에 대해?")
+                .question("응원하는 팀이 10연패 중이다. 나는?")
+                .hint("10연패 — 10경기를 연속으로 진 상태. 팬 입장에서 꽤 괴로운 시기")
                 .options(List.of(
-                    QuestionDto.OptionDto.builder().value("A").text("설레고 적극적으로 뛰어든다").build(),
-                    QuestionDto.OptionDto.builder().value("B").text("신중하게 검토하고 안정을 추구한다").build()
+                    QuestionDto.OptionDto.builder().value("A").text("그래도 직관 간다. 이럴 때 응원해야 진짜 팬이지").build(),
+                    QuestionDto.OptionDto.builder().value("B").text("슬프지만 시즌 포기하고 내년을 기대한다").build(),
+                    QuestionDto.OptionDto.builder().value("C").text("감독·프런트 비판글 커뮤니티에 올린다").build(),
+                    QuestionDto.OptionDto.builder().value("D").text("그냥 다른 팀 재밌는 경기 본다").build()
                 )).build(),
             QuestionDto.builder()
                 .id("q5")
-                .question("경기 관람 스타일은?")
+                .question("주말 계획을 세울 때 나는?")
                 .options(List.of(
-                    QuestionDto.OptionDto.builder().value("A").text("열정적으로 응원하며 분위기를 즐긴다").build(),
-                    QuestionDto.OptionDto.builder().value("B").text("조용히 집중해서 경기를 분석하며 본다").build()
+                    QuestionDto.OptionDto.builder().value("A").text("월요일에 이미 주말 일정 다 잡아놓는다").build(),
+                    QuestionDto.OptionDto.builder().value("B").text("금요일 저녁에 대충 방향만 정한다").build(),
+                    QuestionDto.OptionDto.builder().value("C").text("토요일 아침에 일어나서 그때 기분으로 결정").build(),
+                    QuestionDto.OptionDto.builder().value("D").text("계획 같은 거 없음. 흘러가는 대로").build()
                 )).build(),
             QuestionDto.builder()
                 .id("q6")
-                .question("어떤 스토리가 더 감동적인가?")
+                .question("새로운 사람을 만났을 때 나는?")
                 .options(List.of(
-                    QuestionDto.OptionDto.builder().value("A").text("극적인 역전승, 포기하지 않는 투지").build(),
-                    QuestionDto.OptionDto.builder().value("B").text("처음부터 끝까지 완벽한 경기 운영").build()
+                    QuestionDto.OptionDto.builder().value("A").text("먼저 말 걸고 분위기를 주도한다").build(),
+                    QuestionDto.OptionDto.builder().value("B").text("상대가 말 걸면 잘 받아친다").build(),
+                    QuestionDto.OptionDto.builder().value("C").text("필요한 말만 하고 조용히 있는다").build(),
+                    QuestionDto.OptionDto.builder().value("D").text("일단 관찰하다가 친해지면 많이 떠든다").build()
                 )).build(),
             QuestionDto.builder()
                 .id("q7")
-                .question("야구 관람의 목적은?")
+                .question("게임이나 스포츠에서 나의 스타일은?")
                 .options(List.of(
-                    QuestionDto.OptionDto.builder().value("A").text("현장 분위기와 재미를 즐기기 위해").build(),
-                    QuestionDto.OptionDto.builder().value("B").text("좋아하는 팀의 승리를 위해 진지하게").build()
+                    QuestionDto.OptionDto.builder().value("A").text("무조건 공격. 실점해도 더 많이 뽑으면 됨").build(),
+                    QuestionDto.OptionDto.builder().value("B").text("철벽 수비로 실점 0. 1점이면 이긴다").build(),
+                    QuestionDto.OptionDto.builder().value("C").text("화려한 플레이가 최고. 결과보다 과정").build(),
+                    QuestionDto.OptionDto.builder().value("D").text("이기는 게 전부. 방법은 상관없다").build()
                 )).build(),
             QuestionDto.builder()
                 .id("q8")
-                .question("나는 어떤 스타일의 사람인가?")
+                .question("나에게 더 끌리는 이야기는?")
                 .options(List.of(
-                    QuestionDto.OptionDto.builder().value("A").text("화끈하고 감성적인 스타일").build(),
-                    QuestionDto.OptionDto.builder().value("B").text("차분하고 논리적인 스타일").build()
+                    QuestionDto.OptionDto.builder().value("A").text("수십 년 전통을 이어온 명문의 무게감").build(),
+                    QuestionDto.OptionDto.builder().value("B").text("약팀에서 시작해 정상을 밟은 반란의 서사").build(),
+                    QuestionDto.OptionDto.builder().value("C").text("스타 한 명이 팀을 통째로 이끄는 영웅담").build(),
+                    QuestionDto.OptionDto.builder().value("D").text("조용히 꾸준히 강팀 자리를 지키는 뚝심").build()
                 )).build()
         );
     }

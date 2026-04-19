@@ -52,85 +52,68 @@ public class ClaudeClient {
         Map<String, Integer> scores = new HashMap<>();
         for (String team : TEAM_NAMES) scores.put(team, 0);
 
-        // q1: 주말 활동 (A=외향, B=내향)
-        if ("A".equals(answers.get("q1"))) {
-            add(scores, "KIA 타이거즈", 2); add(scores, "LG 트윈스", 2);
-            add(scores, "KT 위즈", 2);      add(scores, "SSG 랜더스", 2);
-            add(scores, "롯데 자이언츠", 2); add(scores, "키움 히어로즈", 2);
-        } else {
-            add(scores, "삼성 라이온즈", 2); add(scores, "두산 베어스", 2);
-            add(scores, "NC 다이노스", 2);   add(scores, "한화 이글스", 1);
+        // q1: 야구장 관람 스타일 (A=열정응원, B=승부집착, C=분위기관람, D=전략분석)
+        switch (answers.getOrDefault("q1", "")) {
+            case "A" -> { add(scores, "LG 트윈스", 3);     add(scores, "한화 이글스", 3);   add(scores, "롯데 자이언츠", 1); }
+            case "B" -> { add(scores, "KIA 타이거즈", 3);  add(scores, "삼성 라이온즈", 3); add(scores, "두산 베어스", 1); }
+            case "C" -> { add(scores, "롯데 자이언츠", 3); add(scores, "KT 위즈", 3);       add(scores, "LG 트윈스", 1); }
+            case "D" -> { add(scores, "SSG 랜더스", 3);    add(scores, "두산 베어스", 3);   add(scores, "NC 다이노스", 2); }
         }
 
-        // q2: 의사결정 (A=논리, B=감성)
-        if ("A".equals(answers.get("q2"))) {
-            add(scores, "삼성 라이온즈", 2); add(scores, "NC 다이노스", 3);
-            add(scores, "두산 베어스", 1);   add(scores, "KT 위즈", 1);
-        } else {
-            add(scores, "KIA 타이거즈", 2);  add(scores, "롯데 자이언츠", 2);
-            add(scores, "한화 이글스", 2);   add(scores, "LG 트윈스", 1);
-            add(scores, "SSG 랜더스", 1);
+        // q2: 9회말 2아웃 반응 (A=감성몰입, B=냉정전략, C=열정응원, D=소심집착)
+        switch (answers.getOrDefault("q2", "")) {
+            case "A" -> { add(scores, "한화 이글스", 3);   add(scores, "롯데 자이언츠", 3); add(scores, "KIA 타이거즈", 1); }
+            case "B" -> { add(scores, "두산 베어스", 3);   add(scores, "SSG 랜더스", 2);    add(scores, "NC 다이노스", 2); }
+            case "C" -> { add(scores, "LG 트윈스", 3);     add(scores, "KIA 타이거즈", 2);  add(scores, "SSG 랜더스", 1); }
+            case "D" -> { add(scores, "KT 위즈", 3);       add(scores, "NC 다이노스", 2);   add(scores, "키움 히어로즈", 2); }
         }
 
-        // q3: 생활 방식 (A=계획, B=즉흥)
-        if ("A".equals(answers.get("q3"))) {
-            add(scores, "삼성 라이온즈", 3); add(scores, "NC 다이노스", 2);
-            add(scores, "두산 베어스", 2);   add(scores, "한화 이글스", 1);
-        } else {
-            add(scores, "LG 트윈스", 2);     add(scores, "키움 히어로즈", 2);
-            add(scores, "SSG 랜더스", 1);    add(scores, "KT 위즈", 1);
-            add(scores, "롯데 자이언츠", 1);
+        // q3: 직관 동행 (A=커뮤니티, B=입문자친화, C=독립, D=학습)
+        switch (answers.getOrDefault("q3", "")) {
+            case "A" -> { add(scores, "LG 트윈스", 3);     add(scores, "롯데 자이언츠", 3); add(scores, "한화 이글스", 1); }
+            case "B" -> { add(scores, "KT 위즈", 3);       add(scores, "키움 히어로즈", 3); add(scores, "롯데 자이언츠", 1); }
+            case "C" -> { add(scores, "삼성 라이온즈", 3); add(scores, "NC 다이노스", 3);   add(scores, "두산 베어스", 1); }
+            case "D" -> { add(scores, "두산 베어스", 3);   add(scores, "SSG 랜더스", 3);    add(scores, "NC 다이노스", 1); }
         }
 
-        // q4: 도전 성향 (A=도전, B=안정)
-        if ("A".equals(answers.get("q4"))) {
-            add(scores, "KT 위즈", 3);       add(scores, "SSG 랜더스", 2);
-            add(scores, "키움 히어로즈", 2); add(scores, "KIA 타이거즈", 1);
-            add(scores, "LG 트윈스", 1);
-        } else {
-            add(scores, "삼성 라이온즈", 3); add(scores, "두산 베어스", 2);
-            add(scores, "한화 이글스", 2);   add(scores, "NC 다이노스", 1);
+        // q4: 10연패 반응 (A=충성최상, B=현실수용, C=열혈비판, D=느슨한팬)
+        switch (answers.getOrDefault("q4", "")) {
+            case "A" -> { add(scores, "한화 이글스", 3);   add(scores, "롯데 자이언츠", 3); add(scores, "LG 트윈스", 1); }
+            case "B" -> { add(scores, "삼성 라이온즈", 3); add(scores, "KIA 타이거즈", 2);  add(scores, "두산 베어스", 1); }
+            case "C" -> { add(scores, "키움 히어로즈", 3); add(scores, "LG 트윈스", 3);     add(scores, "KIA 타이거즈", 1); }
+            case "D" -> { add(scores, "KT 위즈", 3);       add(scores, "NC 다이노스", 2);   add(scores, "SSG 랜더스", 1); }
         }
 
-        // q5: 관람 스타일 (A=열정 응원, B=분석 관람)
-        if ("A".equals(answers.get("q5"))) {
-            add(scores, "롯데 자이언츠", 3); add(scores, "KIA 타이거즈", 2);
-            add(scores, "SSG 랜더스", 2);    add(scores, "한화 이글스", 2);
-            add(scores, "LG 트윈스", 1);
-        } else {
-            add(scores, "NC 다이노스", 3);   add(scores, "삼성 라이온즈", 2);
-            add(scores, "두산 베어스", 2);   add(scores, "KT 위즈", 1);
+        // q5: 주말 계획 (A=전통체계, B=균형, C=즉흥, D=자유)
+        switch (answers.getOrDefault("q5", "")) {
+            case "A" -> { add(scores, "삼성 라이온즈", 3); add(scores, "두산 베어스", 3);   add(scores, "NC 다이노스", 1); }
+            case "B" -> { add(scores, "KIA 타이거즈", 3);  add(scores, "SSG 랜더스", 3);    add(scores, "KT 위즈", 1); }
+            case "C" -> { add(scores, "롯데 자이언츠", 3); add(scores, "한화 이글스", 3);   add(scores, "LG 트윈스", 1); }
+            case "D" -> { add(scores, "키움 히어로즈", 3); add(scores, "KT 위즈", 3);       add(scores, "SSG 랜더스", 1); }
         }
 
-        // q6: 선호 스토리 (A=역전극, B=완벽한 경기)
-        if ("A".equals(answers.get("q6"))) {
-            add(scores, "롯데 자이언츠", 3); add(scores, "KIA 타이거즈", 2);
-            add(scores, "한화 이글스", 2);   add(scores, "SSG 랜더스", 1);
-            add(scores, "키움 히어로즈", 1);
-        } else {
-            add(scores, "삼성 라이온즈", 3); add(scores, "NC 다이노스", 2);
-            add(scores, "두산 베어스", 2);   add(scores, "LG 트윈스", 1);
+        // q6: 새로운 사람 만남 (A=외향주도, B=균형사교, C=내향집중, D=관찰후폭발)
+        switch (answers.getOrDefault("q6", "")) {
+            case "A" -> { add(scores, "LG 트윈스", 3);     add(scores, "한화 이글스", 3);   add(scores, "SSG 랜더스", 1); }
+            case "B" -> { add(scores, "KIA 타이거즈", 3);  add(scores, "롯데 자이언츠", 3); add(scores, "KT 위즈", 1); }
+            case "C" -> { add(scores, "삼성 라이온즈", 3); add(scores, "NC 다이노스", 3);   add(scores, "두산 베어스", 1); }
+            case "D" -> { add(scores, "두산 베어스", 3);   add(scores, "키움 히어로즈", 3); add(scores, "LG 트윈스", 1); }
         }
 
-        // q7: 관람 목적 (A=분위기/재미, B=승리/진지)
-        if ("A".equals(answers.get("q7"))) {
-            add(scores, "LG 트윈스", 3);     add(scores, "SSG 랜더스", 2);
-            add(scores, "KT 위즈", 2);       add(scores, "키움 히어로즈", 2);
-            add(scores, "롯데 자이언츠", 1);
-        } else {
-            add(scores, "두산 베어스", 3);   add(scores, "KIA 타이거즈", 2);
-            add(scores, "삼성 라이온즈", 2); add(scores, "NC 다이노스", 1);
-            add(scores, "한화 이글스", 1);
+        // q7: 게임/스포츠 스타일 (A=공격화력, B=투수중심, C=화려플레이, D=승리지상)
+        switch (answers.getOrDefault("q7", "")) {
+            case "A" -> { add(scores, "LG 트윈스", 3);     add(scores, "SSG 랜더스", 3);    add(scores, "한화 이글스", 2); }
+            case "B" -> { add(scores, "삼성 라이온즈", 3); add(scores, "NC 다이노스", 3);   add(scores, "KT 위즈", 2); }
+            case "C" -> { add(scores, "키움 히어로즈", 3); add(scores, "롯데 자이언츠", 3); add(scores, "KIA 타이거즈", 1); }
+            case "D" -> { add(scores, "KIA 타이거즈", 3);  add(scores, "두산 베어스", 3);   add(scores, "SSG 랜더스", 1); }
         }
 
-        // q8: 성격 유형 (A=화끈감성, B=차분논리)
-        if ("A".equals(answers.get("q8"))) {
-            add(scores, "SSG 랜더스", 3);    add(scores, "롯데 자이언츠", 2);
-            add(scores, "키움 히어로즈", 2); add(scores, "KIA 타이거즈", 2);
-            add(scores, "한화 이글스", 1);   add(scores, "LG 트윈스", 1);
-        } else {
-            add(scores, "NC 다이노스", 3);   add(scores, "삼성 라이온즈", 2);
-            add(scores, "두산 베어스", 2);   add(scores, "KT 위즈", 1);
+        // q8: 끌리는 이야기 (A=명문전통, B=언더독, C=스타중심, D=꾸준함)
+        switch (answers.getOrDefault("q8", "")) {
+            case "A" -> { add(scores, "KIA 타이거즈", 3);  add(scores, "삼성 라이온즈", 3); add(scores, "두산 베어스", 2); }
+            case "B" -> { add(scores, "한화 이글스", 3);   add(scores, "키움 히어로즈", 3); add(scores, "KT 위즈", 2); }
+            case "C" -> { add(scores, "롯데 자이언츠", 3); add(scores, "LG 트윈스", 3);     add(scores, "SSG 랜더스", 1); }
+            case "D" -> { add(scores, "NC 다이노스", 3);   add(scores, "SSG 랜더스", 3);    add(scores, "KT 위즈", 1); }
         }
 
         return scores;
@@ -165,36 +148,35 @@ public class ClaudeClient {
     // ─────────────────────────────────────────────
 
     private String buildShortReason(String teamName, Map<String, String> answers) {
-        boolean isExtrovert  = "A".equals(answers.get("q1"));
-        boolean isLogical    = "A".equals(answers.get("q2"));
-        boolean isPlanned    = "A".equals(answers.get("q3"));
-        boolean isDaring     = "A".equals(answers.get("q4"));
-        boolean isPassionate = "A".equals(answers.get("q5"));
-        boolean likeDrama    = "A".equals(answers.get("q6"));
-        boolean forFun       = "A".equals(answers.get("q7"));
-        boolean isHotBlood   = "A".equals(answers.get("q8"));
+        String q1 = answers.getOrDefault("q1", "");
+        String q2 = answers.getOrDefault("q2", "");
+        String q4 = answers.getOrDefault("q4", "");
+        String q5 = answers.getOrDefault("q5", "");
+        String q6 = answers.getOrDefault("q6", "");
+        String q7 = answers.getOrDefault("q7", "");
+        String q8 = answers.getOrDefault("q8", "");
 
         return switch (teamName) {
             case "KIA 타이거즈" ->
-                (likeDrama ? "역전 드라마 선호" : "승리 지향") + " + " + (isExtrovert ? "외향적 에너지" : "진지한 승부욕");
+                (q8.equals("A") ? "명문 전통 선호" : "승리 지향") + " + " + (q7.equals("D") ? "승리 지상주의" : "진지한 승부욕");
             case "삼성 라이온즈" ->
-                (isLogical ? "논리적 판단력" : "체계적 성향") + " + " + (isPlanned ? "계획적 스타일" : "안정 추구");
+                (q5.equals("A") ? "계획적 스타일" : "체계적 성향") + " + " + (q6.equals("C") ? "내향 집중형" : "안정 추구");
             case "LG 트윈스" ->
-                (forFun ? "분위기 중시" : "자유로운 성향") + " + " + (isExtrovert ? "외향적 성격" : "트렌디한 감각");
+                (q7.equals("A") ? "공격 야구 선호" : "분위기 중시") + " + " + (q6.equals("A") ? "외향적 성격" : "트렌디한 감각");
             case "두산 베어스" ->
-                (isPlanned ? "체계적 사고" : "강한 승부욕") + " + " + (!isDaring ? "안정 추구" : "끈질긴 투지");
+                (q5.equals("A") ? "체계적 사고" : "강한 승부욕") + " + " + (q7.equals("D") ? "승리 지상주의" : "끈질긴 투지");
             case "KT 위즈" ->
-                (isDaring ? "도전 정신" : "혁신 지향") + " + " + (forFun ? "개방적 마인드" : "성장 지향");
+                (q5.equals("D") ? "자유로운 성향" : "혁신 지향") + " + " + (q2.equals("D") ? "냉철한 판단" : "성장 지향");
             case "SSG 랜더스" ->
-                (isHotBlood ? "화끈한 감성" : "열정적 성향") + " + " + (isDaring ? "도전적 마인드" : "공격적 플레이 선호");
+                (q1.equals("D") ? "데이터 분석형" : "열정적 성향") + " + " + (q7.equals("A") ? "공격적 플레이 선호" : "체계적 성향");
             case "롯데 자이언츠" ->
-                (isPassionate ? "열정 응원" : "감동 추구") + " + " + (likeDrama ? "역전극 선호" : "진한 감동");
+                (q4.equals("A") ? "충성스러운 응원" : "감동 추구") + " + " + (q8.equals("C") ? "스타 중심 선호" : "진한 감성");
             case "한화 이글스" ->
-                (likeDrama ? "역전극 선호" : "우직한 응원") + " + " + (!isDaring ? "끈기 있는 성향" : "변화 기대");
+                (q4.equals("A") ? "어떤 상황에서도 응원" : "역전 드라마 선호") + " + " + (q6.equals("A") ? "열정적 성격" : "우직한 감성");
             case "NC 다이노스" ->
-                (isLogical ? "분석적 사고" : "스마트한 감각") + " + " + (!isPassionate ? "전략 중시" : "체계적 성향");
+                (q1.equals("D") ? "전략 분석형" : "스마트한 감각") + " + " + (q6.equals("C") ? "조용한 집중형" : "체계적 성향");
             case "키움 히어로즈" ->
-                (isDaring ? "도전 선호" : "개성 있는 성향") + " + " + (isHotBlood ? "화끈한 스타일" : "자유로운 마인드");
+                (q8.equals("B") ? "언더독 서사 선호" : "개성 있는 성향") + " + " + (q7.equals("C") ? "화려한 플레이 선호" : "자유로운 마인드");
             default -> "성향 분석 결과 높은 적합도";
         };
     }
@@ -204,22 +186,21 @@ public class ClaudeClient {
     // ─────────────────────────────────────────────
 
     private String determineFanProfile(Map<String, String> answers) {
-        boolean isExtrovert  = "A".equals(answers.get("q1"));
-        boolean isLogical    = "A".equals(answers.get("q2"));
-        boolean isPlanned    = "A".equals(answers.get("q3"));
-        boolean isDaring     = "A".equals(answers.get("q4"));
-        boolean isPassionate = "A".equals(answers.get("q5"));
-        boolean likeDrama    = "A".equals(answers.get("q6"));
-        boolean forFun       = "A".equals(answers.get("q7"));
-        boolean isHotBlood   = "A".equals(answers.get("q8"));
+        String q1 = answers.getOrDefault("q1", "");
+        String q2 = answers.getOrDefault("q2", "");
+        String q3 = answers.getOrDefault("q3", "");
+        String q4 = answers.getOrDefault("q4", "");
+        String q5 = answers.getOrDefault("q5", "");
+        String q6 = answers.getOrDefault("q6", "");
+        String q7 = answers.getOrDefault("q7", "");
+        String q8 = answers.getOrDefault("q8", "");
 
-        // 각 프로필 점수 계산 (0~6)
-        int emotional   = (!isLogical ? 2 : 0) + (likeDrama ? 2 : 0) + (isPassionate ? 1 : 0) + (isHotBlood ? 1 : 0);
-        int analytical  = (isLogical ? 2 : 0) + (isPlanned ? 2 : 0) + (!isPassionate ? 1 : 0) + (!isHotBlood ? 1 : 0);
-        int enthusiast  = (isExtrovert ? 2 : 0) + (isPassionate ? 2 : 0) + (forFun ? 1 : 0) + (likeDrama ? 1 : 0);
-        int traditional = (!isDaring ? 2 : 0) + (!likeDrama ? 2 : 0) + (!forFun ? 1 : 0) + (isPlanned ? 1 : 0);
-        int challenger  = (isDaring ? 2 : 0) + (isHotBlood ? 2 : 0) + (isExtrovert ? 1 : 0) + (forFun ? 1 : 0);
-        int calm        = (!isExtrovert ? 2 : 0) + (!isPassionate ? 2 : 0) + (!isHotBlood ? 1 : 0) + (isLogical ? 1 : 0);
+        int emotional   = (q2.equals("A") ? 3 : 0) + (q4.equals("A") ? 2 : 0) + (q8.equals("C") ? 2 : 0) + (q6.equals("B") ? 1 : 0);
+        int analytical  = (q1.equals("D") ? 3 : 0) + (q2.equals("B") ? 2 : 0) + (q3.equals("D") ? 2 : 0) + (q5.equals("A") ? 1 : 0);
+        int enthusiast  = (q1.equals("A") ? 3 : 0) + (q2.equals("C") ? 2 : 0) + (q3.equals("A") ? 2 : 0) + (q4.equals("A") ? 1 : 0);
+        int traditional = (q8.equals("A") ? 3 : 0) + (q4.equals("B") ? 2 : 0) + (q5.equals("A") ? 2 : 0) + (q6.equals("C") ? 1 : 0);
+        int challenger  = (q8.equals("B") ? 3 : 0) + (q7.equals("A") ? 2 : 0) + (q6.equals("A") ? 2 : 0) + (q4.equals("C") ? 1 : 0);
+        int calm        = (q1.equals("C") ? 3 : 0) + (q3.equals("C") ? 2 : 0) + (q6.equals("C") ? 2 : 0) + (q7.equals("B") ? 1 : 0);
 
         Map<String, Integer> profileScores = new LinkedHashMap<>();
         profileScores.put("감성 몰입형 팬", emotional);
@@ -258,64 +239,63 @@ public class ClaudeClient {
     // ─────────────────────────────────────────────
 
     private String buildReason(String teamName, Map<String, String> answers) {
-        boolean isExtrovert  = "A".equals(answers.get("q1"));
-        boolean isLogical    = "A".equals(answers.get("q2"));
-        boolean isPlanned    = "A".equals(answers.get("q3"));
-        boolean isDaring     = "A".equals(answers.get("q4"));
-        boolean isPassionate = "A".equals(answers.get("q5"));
-        boolean likeDrama    = "A".equals(answers.get("q6"));
-        boolean forFun       = "A".equals(answers.get("q7"));
-        boolean isHotBlood   = "A".equals(answers.get("q8"));
+        String q1 = answers.getOrDefault("q1", "");
+        String q2 = answers.getOrDefault("q2", "");
+        String q4 = answers.getOrDefault("q4", "");
+        String q5 = answers.getOrDefault("q5", "");
+        String q6 = answers.getOrDefault("q6", "");
+        String q7 = answers.getOrDefault("q7", "");
+        String q8 = answers.getOrDefault("q8", "");
 
         return switch (teamName) {
             case "KIA 타이거즈" -> String.format(
                 "당신의 %s 성향과 %s 모습이 KIA 타이거즈의 DNA와 딱 맞아요! " +
                 "최다 우승 팀의 뜨거운 팬덤 속에서 야구의 진정한 재미를 느낄 수 있을 거예요.",
-                isExtrovert ? "열정적이고 외향적인" : "강인하고 진지한",
-                likeDrama ? "역전 드라마를 즐기는" : "승리를 갈망하는"
+                q6.equals("B") ? "균형 잡힌 사교적인" : "열정적인",
+                q7.equals("D") ? "승리를 최우선으로 하는" : "강한 팀 정신을 가진"
             );
             case "삼성 라이온즈" -> String.format(
                 "체계적이고 %s 당신에게는 삼성 라이온즈가 딱입니다! " +
-                "철저한 데이터와 안정적인 운영을 추구하는 팀 스타일이 당신의 성향과 완벽히 맞아요.",
-                isLogical ? "논리적인" : "계획적인"
+                "철저한 시스템과 안정적인 운영을 추구하는 팀 스타일이 당신의 성향과 완벽히 맞아요.",
+                q5.equals("A") ? "계획적인" : "논리적인"
             );
             case "LG 트윈스" -> String.format(
                 "트렌디하고 %s 당신은 LG 트윈스와 잘 맞아요! " +
                 "서울의 화려한 감성 속에서 세련된 야구 문화를 즐길 수 있을 거예요.",
-                forFun ? "재미를 추구하는" : "자유로운"
+                q7.equals("A") ? "공격적인 야구를 좋아하는" : "외향적이고 열정적인"
             );
             case "두산 베어스" -> String.format(
                 "%s 당신에게 두산 베어스를 추천해요! " +
                 "위기에 강하고 강인한 저력으로 끝까지 포기하지 않는 팀 정신이 당신과 닮았어요.",
-                isPlanned ? "뚝심 있고 체계적인" : "진지하고 승부욕 강한"
+                q7.equals("D") ? "승리를 향한 집념이 강한" : "뚝심 있고 체계적인"
             );
             case "KT 위즈" ->
-                "도전을 두려워하지 않는 당신에게 KT 위즈가 잘 맞아요! " +
-                "젊고 혁신적인 구단 문화 속에서 함께 성장하는 재미를 느낄 수 있을 거예요.";
+                "자유롭고 혁신을 즐기는 당신에게 KT 위즈가 잘 맞아요! " +
+                "젊고 역동적인 구단 문화 속에서 함께 성장하는 재미를 느낄 수 있을 거예요.";
             case "SSG 랜더스" -> String.format(
-                "화끈하고 %s 당신에게 SSG 랜더스를 추천해요! " +
+                "%s 당신에게 SSG 랜더스를 추천해요! " +
                 "공격적인 야구와 스타 플레이어들이 만들어내는 짜릿한 순간들이 기다리고 있어요.",
-                isHotBlood ? "감성적인" : "열정적인"
+                q1.equals("D") ? "데이터로 야구를 즐기는 분석적인" : "화끈하고 열정적인"
             );
             case "롯데 자이언츠" -> String.format(
                 "%s 당신은 롯데 자이언츠와 함께하면 야구의 진한 감동을 느낄 수 있어요! " +
                 "부산 갈매기와 함께하는 사직구장의 뜨거운 응원은 잊을 수 없는 경험이 될 거예요.",
-                isPassionate ? "열정적으로 응원하는" : "감성적인"
+                q4.equals("A") ? "어떤 상황에서도 응원하는 열정적인" : "감성적이고 드라마를 좋아하는"
             );
             case "한화 이글스" -> String.format(
                 "끈기 있고 %s 당신에게 한화 이글스가 잘 맞아요! " +
                 "팬과의 깊은 유대감과 감동적인 응원 문화로 야구를 진심으로 즐길 수 있을 거예요.",
-                likeDrama ? "역전극에 감동받는" : "우직한"
+                q2.equals("A") ? "감성적인" : q4.equals("A") ? "충성스러운" : "우직한"
             );
             case "NC 다이노스" -> String.format(
                 "스마트하고 %s 당신에게 NC 다이노스를 추천해요! " +
                 "데이터 기반의 체계적인 야구를 분석하며 보는 즐거움이 남다를 거예요.",
-                isLogical ? "논리적인" : "분석적인"
+                q1.equals("D") ? "분석적인" : "논리적인"
             );
             case "키움 히어로즈" -> String.format(
                 "개성 넘치고 %s 당신에게 키움 히어로즈가 딱이에요! " +
                 "젊고 화끈한 타격과 저비용 고효율의 도전적인 구단 스타일이 당신의 에너지와 잘 어울려요.",
-                isDaring ? "도전적인" : "자유로운"
+                q8.equals("B") ? "언더독의 도전을 응원하는" : "자유롭고 도전적인"
             );
             default -> teamName + "은(는) 당신의 성향과 잘 맞는 팀입니다. 함께 응원해보세요!";
         };

@@ -26,6 +26,9 @@
         <transition name="slide" mode="out-in">
           <div class="question-card" :key="currentIndex">
             <p class="question-text">{{ currentQuestion.question }}</p>
+            <div v-if="currentQuestion.hint" class="hint-box">
+              💡 {{ currentQuestion.hint }}
+            </div>
             <div class="options">
               <button
                 v-for="option in currentQuestion.options"
@@ -34,7 +37,8 @@
                 :class="{ selected: selectedAnswer === option.value }"
                 @click="selectAnswer(option.value)"
               >
-                {{ option.text }}
+                <span class="option-label">{{ option.value }}</span>
+                <span class="option-text">{{ option.text }}</span>
               </button>
             </div>
           </div>
@@ -185,9 +189,20 @@ async function handleSubmit() {
   text-align: center;
 }
 
+.hint-box {
+  background: rgba(168, 216, 234, 0.08);
+  border: 1px solid rgba(168, 216, 234, 0.25);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.83rem;
+  color: #a8d8ea;
+  margin-bottom: 18px;
+  line-height: 1.5;
+}
+
 .options {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 
@@ -195,12 +210,27 @@ async function handleSubmit() {
   background: rgba(255, 255, 255, 0.05);
   border: 2px solid rgba(255, 255, 255, 0.15);
   color: white;
-  padding: 16px 20px;
+  padding: 14px 16px;
   border-radius: 12px;
-  font-size: 0.95rem;
   cursor: pointer;
   text-align: left;
   transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.option-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e94560;
+  line-height: 1;
+}
+
+.option-text {
+  font-size: 0.88rem;
+  line-height: 1.4;
 }
 
 .option-btn:hover {
@@ -211,6 +241,16 @@ async function handleSubmit() {
 .option-btn.selected {
   border-color: #e94560;
   background: rgba(233, 69, 96, 0.2);
+}
+
+.option-btn.selected .option-label {
+  color: white;
+}
+
+@media (max-width: 480px) {
+  .options {
+    grid-template-columns: 1fr;
+  }
 }
 
 .nav-btns {

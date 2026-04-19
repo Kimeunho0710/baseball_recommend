@@ -11,6 +11,7 @@ public class QuestionDto {
 
     private String id;
     private String question;
+    private String hint;
     private List<OptionDto> options;
 
     @Getter
