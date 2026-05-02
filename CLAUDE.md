@@ -10,7 +10,7 @@ KBO 야구 입문자를 위한 팀 추천 서비스.
 - Frontend: Vue 3 (Vue Router 4, Pinia, Vite)
 - DB: MySQL (로컬: localhost:3306/baseball_recommend)
 - 스크래핑: Jsoup (KBO 순위 페이지, KBO WebService API)
-- AI: 현재 규칙 기반 점수 계산 (`ClaudeClient`) → 추후 Claude API 실제 연동 예정
+- AI: 규칙 기반 점수 계산 (`ClaudeClient`) + **Gemini AI API 연동** (`GeminiClient`, `gemini-1.5-flash`) → 추천 이유/팬 프로필 텍스트 생성, 실패 시 규칙 기반 fallback
 - 인증: Spring Security + JWT (JJWT 0.12.3)
 - 배포: Railway (Backend + MySQL) + Vercel (Frontend) — 완료
 
@@ -33,7 +33,7 @@ com.baseball.recommend
 │   ├── standing    순위 도메인 (KBO 스크래핑 + DB 캐시)
 │   ├── game        경기 도메인 (KBO WebService API + DB 캐시)
 │   └── member      회원 도메인 (Member, MemberService, AuthController)
-├── infra/claude    추천 엔진 (현재 규칙 기반, 추후 Claude API)
+├── infra/claude    추천 엔진 — ClaudeClient(규칙 기반 점수+오케스트레이션), GeminiClient(Gemini API 텍스트 생성, fallback 포함)
 └── global/
     ├── config      CORS (CorsConfig), Security (SecurityConfig), ObjectMapper (RestClientConfig)
     ├── security    JWT (JwtUtil, JwtAuthenticationFilter)
@@ -102,10 +102,11 @@ frontend/src/
 - 프론트: 선택지 2열 그리드 + A/B/C/D 라벨 (모바일 1열)
 - 설문 답변 JSON으로 DB 저장 (SurveyResult)
 
-### 팀 추천 (규칙 기반)
-- `ClaudeClient`에 규칙 기반 로직 구현 (추후 실제 API로 교체 예정)
-- 설문 답변별 10개 팀에 가중치 점수 부여
-- 총점 최고 팀 선택 + 맞춤형 추천 이유 생성
+### 팀 추천 (규칙 기반 + Gemini AI)
+- `ClaudeClient`: 설문 답변별 10개 팀에 가중치 점수 부여 → 총점 최고 팀 선택 + Top 3 산출
+- `GeminiClient`: `gemini-1.5-flash` API로 reason / shortReasons / fanProfileDescription 텍스트 생성
+  - `GEMINI_API_KEY` 미설정 또는 API 실패 시 규칙 기반 텍스트로 자동 fallback
+  - 응답은 JSON 형식 강제 요청 (마크다운 코드블록 자동 제거 처리)
 - 추천 결과 DB 저장 (RecommendResult: `reason`, `top3_json`, `fan_profile`, `fan_profile_description`, `member_id`)
 - 로그인 상태에서 설문 제출 시 member 자동 연동 (비로그인도 호환)
 
@@ -198,7 +199,7 @@ docker-compose up --build
 ## 환경 설정
 | 파일 | 용도 | Git |
 |------|------|-----|
-| `application.yml` | 공통 설정 (JPA, JWT, logging) | 커밋 O |
+| `application.yml` | 공통 설정 (JPA, JWT, logging, Gemini) | 커밋 O |
 | `application-local.yml` | 로컬 DB 접속 (비밀번호 포함) | 커밋 X |
 | `application-prod.yml` | Railway 환경변수 참조 | 커밋 O |
 | `application-docker.yml` | Docker Compose용 DB 설정 (mysql 호스트) | 커밋 O |
@@ -210,13 +211,14 @@ docker-compose up --build
 - **Backend**: `https://baseballrecommend-production.up.railway.app`
 - **Frontend**: Vercel (`baseball-recommend.vercel.app`)
 - **DB**: Railway MySQL (Backend 환경변수로 자동 연결)
-- Railway 환경변수: `SPRING_PROFILES_ACTIVE=prod`, `SPRING_DATASOURCE_URL/USERNAME/PASSWORD`, `JWT_SECRET`
+- Railway 환경변수: `SPRING_PROFILES_ACTIVE=prod`, `SPRING_DATASOURCE_URL/USERNAME/PASSWORD`, `JWT_SECRET`, `GEMINI_API_KEY`(선택)
 - Vercel 환경변수: `VITE_API_URL=https://baseballrecommend-production.up.railway.app/api`
 
 ## 주의사항
 - `application-local.yml`은 gitignore (비밀번호 포함)
 - Railway 배포 시 `JWT_SECRET` 환경변수 필수 (32자 이상)
 - Railway 크레딧 소진 시 서비스 자동 중단 (추가 비용 없음)
+- `GEMINI_API_KEY` 미설정 시 AI 텍스트 생성 없이 규칙 기반 fallback 자동 적용 (서비스 정상 작동)
 
 ## 향후 추가 예정 기능
 - [x] 추천 결과 URL 공유 (`/result/:id`, 링크 복사 버튼)
@@ -233,7 +235,8 @@ docker-compose up --build
 - [x] GitHub Actions CI (Backend+MySQL 서비스 컨테이너 / Frontend 빌드 / Docker 이미지 빌드 검증)
 - [ ] Redis 캐싱 (순위·경기 데이터 DB 캐시 → Redis TTL 캐시)
 - [ ] 소셜 로그인 (카카오/구글 OAuth2)
-- [ ] 실제 Claude AI API 연동 (`infra/claude/ClaudeClient` 교체)
+- [x] Gemini AI API 연동 (`GeminiClient` — gemini-1.5-flash, 추천 이유/팬 프로필 텍스트 생성, fallback 포함)
+- [ ] Claude AI API 연동 (`ClaudeClient` 실제 API 교체)
 - [x] 결과 공유 기능 (카카오톡 공유 + 링크 복사, 결과 페이지)
 - [x] 팀별 인기 통계 (`GET /api/recommend/popular-teams`, 홈 화면 바 차트)
 - [ ] RAG 기반 추천 (벡터 DB + Claude)
