@@ -123,6 +123,12 @@
         <!-- ── 액션 버튼 ── -->
         <div class="action-area">
           <RouterLink
+            :to="`/coach/${result.recommendId}`"
+            class="action-btn coach"
+          >
+            🤖 AI 입문 코치에게 질문하기
+          </RouterLink>
+          <RouterLink
             :to="`/teams/${result.teamId}`"
             class="action-btn primary"
             :style="{ background: teamColor }"
@@ -648,6 +654,12 @@ onMounted(async () => {
 .action-btn.secondary {
   background: rgba(255, 255, 255, 0.1);
   color: white;
+}
+
+.action-btn.coach {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  color: #e0e0ff;
 }
 
 .action-btn.ghost {

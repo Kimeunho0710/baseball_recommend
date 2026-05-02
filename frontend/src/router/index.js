@@ -10,6 +10,7 @@ import StandingView from '../views/StandingView.vue'
 import LoginView from '../views/LoginView.vue'
 import SignupView from '../views/SignupView.vue'
 import MyPageView from '../views/MyPageView.vue'
+import CoachView from '../views/CoachView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -18,6 +19,7 @@ const router = createRouter({
     { path: '/survey', name: 'survey', component: SurveyView },
     { path: '/result/:id', name: 'result', component: ResultView },
     { path: '/onboarding/:id', name: 'onboarding', component: OnboardingView },
+    { path: '/coach/:id', name: 'coach', component: CoachView },
     { path: '/teams', name: 'teams', component: TeamsView },
     { path: '/teams/:id', name: 'team-detail', component: TeamDetailView },
     { path: '/compare', name: 'compare', component: TeamCompareView },

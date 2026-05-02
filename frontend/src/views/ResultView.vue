@@ -95,6 +95,15 @@
           ⚾ {{ result.teamName }} 팬 되기 시작하기
         </RouterLink>
 
+        <!-- AI 코치 CTA -->
+        <RouterLink
+          :to="`/coach/${result.recommendId}`"
+          class="coach-cta"
+          :style="{ borderColor: teamColor, color: teamColor }"
+        >
+          🤖 AI 입문 코치에게 질문하기
+        </RouterLink>
+
         <!-- 공유 버튼 -->
         <div class="share-btns">
           <button class="share-btn kakao" @click="shareKakao">
@@ -469,6 +478,26 @@ async function copyLink() {
 
 .onboarding-cta:hover {
   opacity: 0.88;
+  transform: translateY(-2px);
+}
+
+.coach-cta {
+  display: block;
+  width: 100%;
+  padding: 13px;
+  border-radius: 14px;
+  border: 1.5px solid;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  margin-bottom: 10px;
+  background: transparent;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.coach-cta:hover {
+  background: rgba(255, 255, 255, 0.06);
   transform: translateY(-2px);
 }
 

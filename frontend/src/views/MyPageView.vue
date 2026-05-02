@@ -48,6 +48,9 @@
               <RouterLink :to="`/result/${item.recommendId}`" class="card-btn secondary">
                 결과 보기
               </RouterLink>
+              <RouterLink :to="`/coach/${item.recommendId}`" class="card-btn coach">
+                🤖 AI 코치
+              </RouterLink>
             </div>
           </div>
         </div>
@@ -260,6 +263,12 @@ function formatDate(dateStr) {
 .card-btn.secondary {
   background: rgba(255, 255, 255, 0.1);
   color: #ccc;
+}
+
+.card-btn.coach {
+  background: rgba(255, 255, 255, 0.06);
+  color: #aaa;
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .card-btn:hover {
