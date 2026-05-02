@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 public class ClaudeClient {
 
     private final ObjectMapper objectMapper;
+    private final GeminiClient geminiClient;
 
     public ClaudeRecommendResult recommend(String answersJson) {
         try {
@@ -30,18 +31,45 @@ public class ClaudeClient {
                     .orElseThrow()
                     .getKey();
 
-            String reason = buildReason(topTeamName, answers);
-            List<TeamRankItem> top3 = buildTop3(scores, answers);
             String fanProfile = determineFanProfile(answers);
-            String fanProfileDescription = buildProfileDescription(fanProfile);
+            List<TeamRankItem> top3 = buildTop3(scores, answers);
+            List<String> top3Names = top3.stream().map(TeamRankItem::getTeamName).collect(Collectors.toList());
 
-            log.info("추천 결과: {} | 프로필: {} | 점수: {}", topTeamName, fanProfile, scores.get(topTeamName));
+            Map<String, Object> gemini = geminiClient.generateText(answers, topTeamName, fanProfile, top3Names);
+
+            String reason;
+            String fanProfileDescription;
+
+            if (gemini != null) {
+                reason = getStr(gemini, "reason", buildReason(topTeamName, answers));
+                fanProfileDescription = getStr(gemini, "fanProfileDescription", buildProfileDescription(fanProfile));
+
+                @SuppressWarnings("unchecked")
+                Map<String, String> shortReasons = (Map<String, String>) gemini.get("shortReasons");
+                if (shortReasons != null) {
+                    top3 = top3.stream().map(item -> new TeamRankItem(
+                            item.getRank(), item.getTeamName(), item.getPrimaryColor(),
+                            item.getScore(), item.getPercentage(),
+                            shortReasons.getOrDefault(item.getTeamName(), item.getShortReason())
+                    )).collect(Collectors.toList());
+                }
+            } else {
+                reason = buildReason(topTeamName, answers);
+                fanProfileDescription = buildProfileDescription(fanProfile);
+            }
+
+            log.info("추천: {} | 프로필: {} | Gemini: {}", topTeamName, fanProfile, gemini != null ? "ON" : "fallback");
 
             return new ClaudeRecommendResult(topTeamName, reason, top3, fanProfile, fanProfileDescription);
         } catch (Exception e) {
             log.error("추천 로직 오류: {}", e.getMessage());
             throw new BusinessException(ErrorCode.CLAUDE_API_ERROR);
         }
+    }
+
+    private String getStr(Map<String, Object> map, String key, String fallback) {
+        Object val = map.get(key);
+        return (val instanceof String s && !s.isBlank()) ? s : fallback;
     }
 
     // ─────────────────────────────────────────────
