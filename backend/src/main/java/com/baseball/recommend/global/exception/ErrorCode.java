@@ -19,6 +19,9 @@ public enum ErrorCode {
     SURVEY_NOT_FOUND(HttpStatus.NOT_FOUND, "설문 결과를 찾을 수 없습니다."),
     INVALID_SURVEY_ANSWER(HttpStatus.BAD_REQUEST, "유효하지 않은 설문 답변입니다."),
 
+    // Recommend
+    RECOMMEND_NOT_FOUND(HttpStatus.NOT_FOUND, "추천 결과를 찾을 수 없습니다."),
+
     // Claude
     CLAUDE_API_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "AI 추천 중 오류가 발생했습니다."),
 

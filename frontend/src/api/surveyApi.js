@@ -56,3 +56,8 @@ export async function fetchPopularTeams() {
   const { data } = await api.get('/recommend/popular-teams')
   return data
 }
+
+export async function sendCoachMessage(recommendId, message, history) {
+  const { data } = await api.post('/coach/chat', { recommendId, message, history })
+  return data
+}

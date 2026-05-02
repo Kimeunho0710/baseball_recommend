@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +19,7 @@ import java.util.Map;
 public class GeminiClient {
 
     private static final String GEMINI_URL =
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent";
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
@@ -78,6 +79,64 @@ public class GeminiClient {
         } catch (Exception e) {
             log.error("Gemini API 실패, fallback 사용: {}", e.getMessage());
             return null;
+        }
+    }
+
+    /**
+     * 멀티턴 채팅. history는 [{role: "user"|"model", content: "..."}] 형태.
+     * @return AI 답변 텍스트, 실패 시 안내 메시지
+     */
+    public String chatReply(String systemPrompt, List<Map<String, String>> history, String message) {
+        if (apiKey == null || apiKey.isBlank()) {
+            return "AI 코치 기능을 사용하려면 GEMINI_API_KEY 설정이 필요합니다.";
+        }
+        try {
+            List<Map<String, Object>> contents = new ArrayList<>();
+
+            // 시스템 컨텍스트를 첫 user/model 교환으로 주입 (systemInstruction 대신)
+            contents.add(Map.of(
+                "role", "user",
+                "parts", List.of(Map.of("text", "[코치 설정]\n" + systemPrompt))
+            ));
+            contents.add(Map.of(
+                "role", "model",
+                "parts", List.of(Map.of("text", "알겠습니다! 입문자 분을 위해 최선을 다해 도와드릴게요."))
+            ));
+
+            for (Map<String, String> msg : history) {
+                contents.add(Map.of(
+                    "role", msg.get("role"),
+                    "parts", List.of(Map.of("text", msg.get("content")))
+                ));
+            }
+            contents.add(Map.of(
+                "role", "user",
+                "parts", List.of(Map.of("text", message))
+            ));
+
+            Map<String, Object> genConfig = new HashMap<>();
+            genConfig.put("temperature", 0.8);
+            genConfig.put("maxOutputTokens", 500);
+
+            Map<String, Object> body = new HashMap<>();
+            body.put("contents", contents);
+            body.put("generationConfig", genConfig);
+
+            String raw = restClient.post()
+                    .uri(GEMINI_URL + "?key=" + apiKey)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .body(String.class);
+
+            JsonNode root = objectMapper.readTree(raw);
+            return root.path("candidates").get(0)
+                    .path("content").path("parts").get(0)
+                    .path("text").asText().strip();
+
+        } catch (Exception e) {
+            log.error("Gemini 채팅 실패: {}", e.getMessage());
+            return "답변을 생성하는 데 문제가 생겼어요. 다시 질문해주세요.";
         }
     }
 
