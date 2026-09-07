@@ -41,9 +41,10 @@ docker compose exec mysql mysql -uroot -ppassword baseball_recommend \
 **직접 해볼 실험 — ShedLock이 진짜 동작하는지**
 
 ```bash
-docker compose up --build --scale backend=2
+docker compose -f docker-compose.scale.yml up --build --scale backend=2
 ```
-포트 충돌이 나면 `docker-compose.yml`의 backend `ports` 매핑을 잠시 주석 처리한다.
+(`docker-compose.scale.yml`은 backend의 `ports` 매핑만 뺀 실험용 파일이다.
+호스트 포트를 고정하면 컨테이너 2개가 같은 8080을 잡으려 해서 뜨지 않는다.)
 두 컨테이너 로그를 보면 **한쪽만** `[스케줄] KBO 순위 갱신 시작`을 찍는다.
 `@SchedulerLock`을 주석 처리하고 다시 해보면 양쪽 다 찍는다 — **이 차이를 직접 보는 게 핵심이다.**
 

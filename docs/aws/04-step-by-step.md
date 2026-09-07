@@ -99,25 +99,21 @@ docker compose down
 
 이 실험이 이번 작업에서 **면접에 쓸 수 있는 가장 좋은 재료**다. 꼭 한다.
 
-## 2-1. 포트 매핑 잠시 제거
+## 2-1. 실행 중인 것 정리
 
-컨테이너를 2개로 늘리면 둘 다 호스트 8080을 잡으려 해서 충돌한다.
-`docker-compose.yml`에서 **backend 쪽** `ports` 두 줄을 주석 처리한다.
+원래 창에서 **Ctrl + C** 로 중단한 뒤:
 
-```yaml
-  backend:
-    build: ./backend
-    environment:
-      ...
-    # ports:
-    #   - "8080:8080"
-    depends_on:
+```bash
+docker compose down
 ```
 
 ## 2-2. 백엔드를 2개로 띄운다
 
+실험용 compose 파일을 쓴다. `docker-compose.yml`과 딱 하나 다르다 — **backend의 `ports` 매핑이 없다.**
+호스트 포트를 고정 매핑하면 컨테이너 2개가 같은 8080을 잡으려다 충돌한다.
+
 ```bash
-docker compose up --build --scale backend=2
+docker compose -f docker-compose.scale.yml up --build --scale backend=2
 ```
 
 ## 2-3. 로그 관찰 — **여기가 핵심**
@@ -131,8 +127,12 @@ docker compose up --build --scale backend=2
 ✅ **성공 확인**: `backend-1`, `backend-2` 중 **한쪽에서만** 찍힌다.
 
 ```bash
-# 컨테이너별로 세어보기
-docker compose logs backend | grep "순위 갱신 시작"
+# 새 터미널에서 — 컨테이너별로 세어보기
+docker compose -f docker-compose.scale.yml logs backend | grep "순위 갱신 시작"
+
+# 어느 인스턴스가 락을 잡았는지도 본다
+docker compose -f docker-compose.scale.yml exec mysql \
+  mysql -uroot -ppassword baseball_recommend -e "select name, locked_by from shedlock;"
 ```
 
 ## 2-4. 대조 실험 — ShedLock을 끄면 어떻게 되나
@@ -141,18 +141,18 @@ docker compose logs backend | grep "순위 갱신 시작"
 `@SchedulerLock(...)` 줄을 **주석 처리**하고 다시 띄운다.
 
 ```bash
-docker compose down
-docker compose up --build --scale backend=2
+docker compose -f docker-compose.scale.yml down
+docker compose -f docker-compose.scale.yml up --build --scale backend=2
 ```
 
 ✅ **이번엔 양쪽 다 찍힌다.** → KBO 서버에 중복 요청이 나가고 있다는 뜻이다.
 
-확인했으면 **주석을 원래대로 되돌리고**, `docker-compose.yml`의 `ports`도 되돌린다.
+확인했으면 주석 처리한 `@SchedulerLock`을 되돌린다.
 
 ```bash
-git diff                 # 되돌릴 게 남아있는지 확인
+git diff                 # 무엇을 고쳤는지 확인
 git checkout -- .        # 실험용 수정 전부 되돌리기
-docker compose down
+docker compose -f docker-compose.scale.yml down
 ```
 
 > 📝 **여기서 배운 것을 한 줄로 정리해두자.**
