@@ -80,6 +80,10 @@ aws configure get region         # ap-northeast-2
 
 한 번에 다 만들지 않는다. **VPC와 서브넷만** 만들고 `apply` → 콘솔 확인 → `destroy` 를 한 사이클 돌린다.
 
+> **Terraform 을 처음 쓴다면 `docs/aws/03-terraform-basics.md` 를 먼저 읽는다.**
+> 거기에 개념 설명과 VPC 1개짜리 최소 예제, `init/plan/apply/destroy` 한 사이클이 있다.
+> 그 사이클을 돌려본 뒤에 이 과제로 돌아온다.
+
 ```bash
 terraform -version    # 설치 확인
 mkdir infra && cd infra
