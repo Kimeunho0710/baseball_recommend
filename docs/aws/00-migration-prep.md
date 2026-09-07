@@ -1,8 +1,8 @@
 # AWS 이관 준비 (Phase ①) — 무엇이 왜 바뀌었는가
 
-Plan A(EC2 프리티어 + RDS + S3/CloudFront)로 옮기기 전에,
+AWS(ECS Fargate + ALB + RDS + S3/CloudFront)로 옮기기 전에,
 **앱이 클라우드 환경에서 정상 동작하기 위한 최소 조건**을 코드에 반영한 단계다.
-AWS 콘솔/Terraform 작업은 Phase ②부터이며, 이 문서는 그 전제 조건을 정리한다.
+AWS 콘솔/Terraform 작업은 Phase ②(`01-architecture.md`)부터이며, 이 문서는 그 전제 조건을 정리한다.
 
 ---
 
@@ -36,8 +36,8 @@ curl -s localhost:8080/actuator/health
 - `lockAtMostFor = PT10M` — 인스턴스가 죽어도 10분 뒤 락이 풀림
 - `lockAtLeastFor = PT1M` — 작업이 너무 빨리 끝나도 1분간은 다른 인스턴스가 재실행하지 못함
 
-> Plan A(EC2 1대)에서는 당장 문제가 되지 않지만, **오토스케일링이나 배포 중 인스턴스 2대가 겹치는 순간**부터 필요하다.
-> 무중단 배포(신·구 인스턴스 동시 기동)에서도 겹친다.
+> ECS Fargate 에서 task 를 2개로 늘리는 순간, 그리고 롤링 배포로 신·구 task 가 겹치는 순간부터 필수다.
+> task 를 2개로 띄우고 CloudWatch 로그에서 한쪽만 스크래핑하는 것을 확인하면 동작을 직접 검증할 수 있다.
 
 ---
 

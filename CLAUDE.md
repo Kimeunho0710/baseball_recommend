@@ -14,7 +14,7 @@ KBO 야구 입문자를 위한 팀 추천 서비스.
 - 인증: Spring Security + JWT (JJWT 0.12.3)
 - 스케줄러: `@Scheduled` + **ShedLock** (다중 인스턴스 중복 실행 방지)
 - 모니터링: Spring Boot Actuator (`/actuator/health`)
-- 배포: Railway (Backend + MySQL) + Vercel (Frontend) — 완료 / **AWS 이관 진행 중** (Plan A: EC2 + RDS + S3·CloudFront, Terraform)
+- 배포: Railway (Backend + MySQL) + Vercel (Frontend) — 완료 / **AWS 이관 진행 중** (ECS Fargate + ALB + RDS + S3·CloudFront, Terraform IaC)
 
 ## 브랜치 전략
 ```
@@ -249,7 +249,7 @@ docker-compose up --build
 - [x] Claude API 연동 (`ClaudeApiClient` — claude-haiku-4-5, 코치 채팅 2순위)
 - [x] Gemini AI API 연동 (`GeminiClient` — gemini-2.0-flash-lite, 추천 이유/팬 프로필 텍스트 생성 + 코치 채팅 3순위)
 - [x] AWS 이관 준비 — Actuator 헬스체크 / ShedLock 스케줄러 락 / Flyway 마이그레이션 / CORS 화이트리스트 (`docs/aws/00-migration-prep.md`)
-- [ ] AWS 인프라 구축 (Plan A: EC2 + RDS + S3/CloudFront, Terraform IaC)
+- [ ] AWS 인프라 구축 (ECR/ECS Fargate + ALB + RDS + S3/CloudFront, Terraform — `docs/aws/01-architecture.md`)
 - [ ] Redis 캐싱 (순위·경기 데이터 DB 캐시 → Redis TTL 캐시)
 - [ ] 소셜 로그인 (카카오/구글 OAuth2)
 - [x] 결과 공유 기능 (카카오톡 공유 + 링크 복사, 결과 페이지)
