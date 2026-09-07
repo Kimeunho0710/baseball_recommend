@@ -69,6 +69,16 @@ frontend/src/
     └── CoachView.vue       AI 입문 코치 채팅 (/coach/:id — recommendId 기반, 멀티턴)
 ```
 
+## 인프라 (Terraform)
+```
+infra/
+├── main.tf      provider(ap-northeast-2) + VPC(10.0.0.0/16)
+└── .gitignore   .terraform/, *.tfstate, *.tfvars 제외 (state 에 비밀값 포함)
+```
+- 실행: `terraform init` → `plan` → `apply` / 정리: `terraform destroy`
+- **state 파일은 절대 커밋하지 않는다** (DB 비밀번호 등 평문 포함)
+- 문서: `docs/aws/` — 00 이관준비 / 01 아키텍처 명세 / 02 실습과제 / 03 Terraform 기초 / 04 단계별 가이드 / 05 맥 초기설정
+
 ## API 엔드포인트
 | Method | URL | 인증 | 설명 |
 |--------|-----|------|------|
@@ -250,6 +260,7 @@ docker-compose up --build
 - [x] Gemini AI API 연동 (`GeminiClient` — gemini-2.0-flash-lite, 추천 이유/팬 프로필 텍스트 생성 + 코치 채팅 3순위)
 - [x] AWS 이관 준비 — Actuator 헬스체크 / ShedLock 스케줄러 락 / Flyway 마이그레이션 / CORS 화이트리스트 (`docs/aws/00-migration-prep.md`)
 - [ ] AWS 인프라 구축 (ECR/ECS Fargate + ALB + RDS + S3/CloudFront, Terraform — `docs/aws/01-architecture.md`)
+  - [x] VPC (`infra/main.tf`) — 다음: 서브넷 4개 / IGW / 라우팅 테이블
 - [ ] Redis 캐싱 (순위·경기 데이터 DB 캐시 → Redis TTL 캐시)
 - [ ] 소셜 로그인 (카카오/구글 OAuth2)
 - [x] 결과 공유 기능 (카카오톡 공유 + 링크 복사, 결과 페이지)
