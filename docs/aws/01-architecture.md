@@ -75,6 +75,27 @@
 | **lifecycle policy** | **최근 5개만 보관** ← 안 걸면 이미지가 쌓여 프리티어 500MB를 금방 넘긴다 |
 | scan on push | 켜기 (무료) |
 
+> ⚠️ **CPU 아키텍처 주의 — M칩 맥에서 빌드할 때 반드시 걸리는 문제**
+>
+> Apple Silicon 맥에서 `docker build` 하면 **arm64 이미지**가 만들어진다.
+> 그런데 **Fargate 의 기본 `runtimePlatform` 은 X86_64** 라, 그 이미지를 ECR 에 올려 배포하면
+> 태스크가 `exec format error` 로 즉시 죽는다. 로그도 거의 안 남아서 원인 찾기 어렵다.
+>
+> 둘 중 하나를 택한다.
+>
+> 1. **빌드할 때 플랫폼을 맞춘다** (권장 — CI 와 동일한 결과물)
+>    ```bash
+>    docker build --platform linux/amd64 -t <ecr-url>:latest ./backend
+>    ```
+>    맥에서는 에뮬레이션이라 빌드가 느리다.
+> 2. **Fargate 를 ARM 으로 돌린다** — task definition 의
+>    `runtimePlatform = { cpu_architecture = "ARM64" }`.
+>    ARM Fargate 가 **약 20% 싸다.** 대신 베이스 이미지가 arm64 를 지원해야 한다.
+>
+> 참고로 이 프로젝트의 `backend/Dockerfile` 런타임 베이스는 `eclipse-temurin:17-jre-jammy` 다.
+> alpine 태그는 **amd64 만 배포**되어 M칩 맥에서 빌드가 실패하기 때문에 멀티아치인 jammy 로 바꿨다.
+> (`docker manifest inspect eclipse-temurin:17-jre-alpine` 로 직접 확인해볼 수 있다.)
+
 ### 4. RDS
 
 | 항목 | 값 | 왜 |
