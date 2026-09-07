@@ -8,11 +8,13 @@ KBO 야구 입문자를 위한 팀 추천 서비스.
 ## 기술 스택
 - Backend: Spring Boot 3.2.4 / Java 17 / Maven
 - Frontend: Vue 3 (Vue Router 4, Pinia, Vite)
-- DB: MySQL (로컬: localhost:3306/baseball_recommend)
+- DB: MySQL (로컬: localhost:3306/baseball_recommend) — 스키마 관리: **Flyway** (`ddl-auto: validate`)
 - 스크래핑: Jsoup (KBO 순위 페이지, KBO WebService API)
 - AI: 규칙 기반 점수 계산 (`ClaudeClient`) + **Gemini AI API** (`GeminiClient`, `gemini-2.0-flash-lite`) → 추천 이유/팬 프로필 텍스트 생성 + **AI 입문 코치 채팅** (`POST /api/coach/chat`, 멀티턴) — Groq(`llama-3.1-8b-instant`) 우선 → Claude API(`claude-haiku-4-5`) → Gemini 순 cascade fallback
 - 인증: Spring Security + JWT (JJWT 0.12.3)
-- 배포: Railway (Backend + MySQL) + Vercel (Frontend) — 완료
+- 스케줄러: `@Scheduled` + **ShedLock** (다중 인스턴스 중복 실행 방지)
+- 모니터링: Spring Boot Actuator (`/actuator/health`)
+- 배포: Railway (Backend + MySQL) + Vercel (Frontend) — 완료 / **AWS 이관 진행 중** (Plan A: EC2 + RDS + S3·CloudFront, Terraform)
 
 ## 브랜치 전략
 ```
@@ -36,7 +38,7 @@ com.baseball.recommend
 │   └── coach       AI 코치 도메인 (CoachController, CoachService, CoachRequest/Response)
 ├── infra/claude    추천 엔진 — ClaudeClient(규칙 기반 점수+오케스트레이션), GeminiClient(Gemini API 텍스트 생성+채팅), GroqClient(Llama 채팅 — 무료 우선), ClaudeApiClient(Claude Haiku 채팅 — 2순위)
 └── global/
-    ├── config      CORS (CorsConfig), Security (SecurityConfig), ObjectMapper (RestClientConfig)
+    ├── config      CORS (CorsConfig — 화이트리스트), Security (SecurityConfig), ObjectMapper (RestClientConfig), 스케줄러 락 (SchedulerConfig)
     ├── security    JWT (JwtUtil, JwtAuthenticationFilter)
     └── exception   공통 예외처리 (BusinessException, GlobalExceptionHandler, ErrorCode)
 ```
@@ -85,6 +87,7 @@ frontend/src/
 | GET | /api/auth/me | 필요 | 내 정보 조회 |
 | GET | /api/auth/me/recommendations | 필요 | 내 추천 기록 목록 |
 | POST | /api/coach/chat | 불필요 | AI 입문 코치 채팅 (recommendId + message + history → reply) |
+| GET | /actuator/health | 불필요 | 헬스체크 (docker healthcheck / ALB Target Group) |
 
 ## 구현 완료 기능
 
@@ -204,7 +207,7 @@ docker-compose up --build
 |------|------|-----|
 | `application.yml` | 공통 설정 (JPA, JWT, logging, Gemini, Groq, Anthropic) | 커밋 O |
 | `application-local.yml` | 로컬 DB 접속 + API 키 직접 입력 | 커밋 X |
-| `application-prod.yml` | Railway 환경변수 참조 | 커밋 O |
+| `application-prod.yml` | 배포 환경변수 참조 (Railway / AWS 공용) | 커밋 O |
 | `application-docker.yml` | Docker Compose용 DB 설정 (mysql 호스트) | 커밋 O |
 
 - 로컬 실행: IntelliJ **활성화된 프로파일** 칸에 `local` 입력
@@ -219,6 +222,8 @@ docker-compose up --build
 
 ## 주의사항
 - `application-local.yml`은 gitignore (비밀번호 포함)
+- **`CORS_ALLOWED_ORIGINS` 미설정 시 애플리케이션 기동 실패** (의도된 fail-fast) — 배포 환경변수에 반드시 추가
+- DB 스키마 변경은 JPA 엔티티 수정만으로 반영되지 않음 → `backend/src/main/resources/db/migration/V{n}__*.sql` 추가 필수
 - Railway 배포 시 `JWT_SECRET` 환경변수 필수 (32자 이상)
 - Railway 크레딧 소진 시 서비스 자동 중단 (추가 비용 없음)
 - AI 코치 채팅: `GROQ_API_KEY` 우선 사용 (무료, 권장) → `ANTHROPIC_API_KEY` → `GEMINI_API_KEY` 순 cascade
@@ -243,6 +248,8 @@ docker-compose up --build
 - [x] Groq API 연동 (`GroqClient` — llama-3.1-8b-instant, 무료, 코치 채팅 1순위)
 - [x] Claude API 연동 (`ClaudeApiClient` — claude-haiku-4-5, 코치 채팅 2순위)
 - [x] Gemini AI API 연동 (`GeminiClient` — gemini-2.0-flash-lite, 추천 이유/팬 프로필 텍스트 생성 + 코치 채팅 3순위)
+- [x] AWS 이관 준비 — Actuator 헬스체크 / ShedLock 스케줄러 락 / Flyway 마이그레이션 / CORS 화이트리스트 (`docs/aws/00-migration-prep.md`)
+- [ ] AWS 인프라 구축 (Plan A: EC2 + RDS + S3/CloudFront, Terraform IaC)
 - [ ] Redis 캐싱 (순위·경기 데이터 DB 캐시 → Redis TTL 캐시)
 - [ ] 소셜 로그인 (카카오/구글 OAuth2)
 - [x] 결과 공유 기능 (카카오톡 공유 + 링크 복사, 결과 페이지)
