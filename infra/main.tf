@@ -66,7 +66,7 @@ resource "aws_subnet" "private_a" {
   }
 }
 
-resource "aws_subnet" "pribate_c" {
+resource "aws_subnet" "private_c" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.11.0/24"
   availability_zone = "ap-northeast-2c"
