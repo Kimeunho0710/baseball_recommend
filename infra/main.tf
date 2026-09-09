@@ -343,3 +343,137 @@ resource "aws_iam_role" "ecs_task" {
   })
 }
 
+resource "aws_lb" "main" {
+  name               = "baseball-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb.id]
+  subnets            = [aws_subnet.public_a.id, aws_subnet.public_c.id]
+
+  enable_deletion_protection = false
+
+  tags = {
+    Name = "baseball-alb"
+  }
+}
+
+resource "aws_lb_target_group" "backend" {
+  name        = "baseball-backend-tg"
+  port        = 8080
+  protocol    = "HTTP"
+  vpc_id      = aws_vpc.main.id
+  target_type = "ip"
+
+  deregistration_delay = 30
+
+  health_check {
+    enabled             = true
+    path                = "/actuator/health"
+    protocol            = "HTTP"
+    matcher             = "200"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+  }
+
+  tags = {
+    Name = "baseball-backend-tg"
+  }
+}
+
+resource "aws_lb_listener" "http" {
+  load_balancer_arn = aws_lb.main.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.backend.arn
+  }
+}
+
+output "alb_dns_name" {
+  value = aws_lb.main.dns_name
+}
+
+resource "aws_cloudwatch_log_group" "backend" {
+  name              = "/ecs/baseball-backend"
+  retention_in_days = 7
+}
+
+resource "aws_ecs_cluster" "main" {
+  name = "baseball-cluster"
+}
+
+resource "aws_ecs_task_definition" "backend" {
+  family                   = "baseball-backend"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = "512"
+  memory                   = "1024"
+  execution_role_arn       = aws_iam_role.ecs_execution.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
+
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "X86_64"
+  }
+
+  container_definitions = jsonencode([{
+    name      = "backend"
+    image     = "${aws_ecr_repository.backend.repository_url}:latest"
+    essential = true
+
+    portMappings = [{
+      containerPort = 8080
+      protocol      = "tcp"
+    }]
+
+    environment = [
+      { name = "SPRING_PROFILES_ACTIVE", value = "prod" },
+      { name = "SPRING_DATASOURCE_URL", value = "jdbc:mysql://${aws_db_instance.main.endpoint}/baseball_recommend?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true" },
+      { name = "SPRING_DATASOURCE_USERNAME", value = "baseball_admin" },
+      { name = "CORS_ALLOWED_ORIGINS", value = "http://${aws_lb.main.dns_name}" },
+      { name = "TZ", value = "Asia/Seoul" },
+    ]
+
+    secrets = [
+      { name = "SPRING_DATASOURCE_PASSWORD", valueFrom = aws_ssm_parameter.db_password.arn },
+      { name = "JWT_SECRET", valueFrom = aws_ssm_parameter.jwt_secret.arn },
+    ]
+
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = aws_cloudwatch_log_group.backend.name
+        "awslogs-region"        = "ap-northeast-2"
+        "awslogs-stream-prefix" = "ecs"
+      }
+    }
+  }])
+}
+
+resource "aws_ecs_service" "backend" {
+  name            = "baseball-backend"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.backend.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = [aws_subnet.public_a.id, aws_subnet.public_c.id]
+    security_groups  = [aws_security_group.ecs.id]
+    assign_public_ip = true
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.backend.arn
+    container_name   = "backend"
+    container_port   = 8080
+  }
+
+  health_check_grace_period_seconds = 120
+
+  depends_on = [aws_lb_listener.http]
+}
