@@ -6,6 +6,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
   }
 }
 
@@ -206,5 +210,79 @@ resource "aws_ecr_lifecycle_policy" "backend" {
     }]
   })
 }
+
+resource "aws_db_subnet_group" "main" {
+  name       = "baseball-db-subnet-group"
+  subnet_ids = [aws_subnet.private_a.id, aws_subnet.private_c.id]
+
+  tags = {
+    Name = "baseball-db-subnet-group"
+  }
+}
+
+resource "aws_db_parameter_group" "mysql8" {
+  name   = "baseball-mysql8"
+  family = "mysql8.0"
+
+  parameter {
+    name  = "character_set_server"
+    value = "utf8mb4"
+  }
+
+  parameter {
+    name  = "collation_server"
+    value = "utf8mb4_unicode_ci"
+  }
+
+  parameter {
+    name  = "time_zone"
+    value = "Asia/Seoul"
+  }
+}
+
+resource "random_password" "db" {
+  length  = 24
+  special = false
+}
+
+resource "aws_ssm_parameter" "db_password" {
+  name  = "/baseball/db/password"
+  type  = "SecureString"
+  value = random_password.db.result
+}
+
+resource "aws_db_instance" "main" {
+  identifier     = "baseball-db"
+  engine         = "mysql"
+  engine_version = "8.0"
+  instance_class = "db.t4g.micro"
+
+  db_name  = "baseball_recommend"
+  username = "baseball_admin"
+  password = random_password.db.result
+
+  allocated_storage = 20
+  storage_type      = "gp3"
+  storage_encrypted = true
+
+  db_subnet_group_name   = aws_db_subnet_group.main.name
+  parameter_group_name   = aws_db_parameter_group.mysql8.name
+  vpc_security_group_ids = [aws_security_group.rds.id]
+  publicly_accessible    = false
+
+  multi_az                = false
+  backup_retention_period = 0
+  skip_final_snapshot     = true
+  deletion_protection     = false
+
+  tags = {
+    Name = "baseball-db"
+  }
+}
+
+output "db_endpoint" {
+  value = aws_db_instance.main.endpoint
+}
+
 
 
