@@ -112,6 +112,92 @@ echo "https://$(terraform output -raw cloudfront_domain)"
 
 ---
 
+## 자동 배포 (CD)
+
+`main` 에 푸시하면 GitHub Actions 가 빌드부터 ECS 배포까지 처리한다.
+위 **2. 백엔드 이미지**, **3. ECS 배포** 는 인프라를 새로 올린 직후처럼 CD 를 쓸 수 없을 때의 수동 절차다.
+
+```
+git push origin main
+      │
+      ▼
+.github/workflows/cd.yml
+  ① OIDC 로 임시 자격증명 획득   (저장된 액세스 키 없음)
+  ② docker build → ECR push      태그 = 커밋 SHA
+  ③ 현재 태스크 정의 조회 → image 만 교체
+  ④ ECS 롤링 배포 → 헬스체크 통과까지 대기
+```
+
+소요 시간 약 6분 (이미지 빌드 1분, ECS 배포 4~5분).
+
+### 최초 1회 설정
+
+`terraform apply` 로 역할이 만들어진 뒤, 저장소에 ARN 을 등록한다.
+
+```bash
+cd infra
+terraform output github_actions_role_arn
+```
+
+GitHub → Settings → Secrets and variables → Actions → **Variables** 탭 → New repository variable
+
+| Name | Value |
+|---|---|
+| `AWS_ROLE_ARN` | 위 output 값 |
+
+**Secrets 가 아니라 Variables 다.** 역할 ARN 은 비밀이 아니다 — 신뢰 정책이 저장소·브랜치를 검사하므로 ARN 만으로는 아무것도 못 한다.
+Secrets 에 넣으면 로그에서 `***` 로 가려져 디버깅만 어려워진다.
+
+인프라를 `destroy` 후 다시 `apply` 하면 역할 ARN 은 그대로다 (이름 기반). 재등록 불필요.
+
+### 왜 OIDC 인가
+
+액세스 키를 GitHub Secrets 에 넣는 방식은 **만료가 없다.** 유출되면 직접 지울 때까지 유효하다.
+OIDC 는 GitHub 이 서명한 토큰을 AWS 가 검증하고 그 자리에서 임시 자격증명을 발급한다. 저장되는 비밀이 0 개다.
+
+### 신뢰 정책의 `sub` 조건 ⚠️
+
+`aws_iam_role.github_actions` 의 신뢰 정책에서 이 줄이 보안의 전부다.
+
+```hcl
+"token.actions.githubusercontent.com:sub" = "repo:Kimeunho0710/baseball_recommend:ref:refs/heads/main"
+```
+
+느슨하게 두면 (`repo:...:*` 또는 `repo:*`) 다른 브랜치·PR·심지어 남의 저장소에서 이 역할을 맡을 수 있다.
+브랜치를 늘릴 때만 `StringLike` + 와일드카드를 쓰고, 그 외에는 `StringEquals` 로 정확히 못 박는다.
+
+### 배포 확인
+
+```bash
+aws ecs describe-services --cluster baseball-cluster --services baseball-backend \
+  --query 'services[0].taskDefinition' --output text
+
+aws ecr describe-images --repository-name baseball-recommend-backend \
+  --query 'sort_by(imageDetails,&imagePushedAt)[-1].imageTags' --output text
+```
+
+이미지 태그가 방금 푸시한 커밋 SHA 와 같아야 한다.
+태스크 정의 리비전 번호는 `destroy` 해도 초기화되지 않고 계속 올라간다.
+
+### Terraform 과 CD 의 경계
+
+| 대상 | 관리 주체 |
+|---|---|
+| 태스크 정의의 구조 (환경변수·시크릿·CPU/메모리) | Terraform |
+| 태스크 정의의 이미지 태그 | CD |
+
+`aws_ecs_service` 에 아래를 두어 Terraform 이 CD 의 배포를 되돌리지 않게 한다.
+
+```hcl
+lifecycle {
+  ignore_changes = [task_definition, desired_count]
+}
+```
+
+이게 없으면 다음 `terraform apply` 가 이미지를 `:latest` 로 되돌린다.
+
+---
+
 ## 내리기
 
 ```bash
