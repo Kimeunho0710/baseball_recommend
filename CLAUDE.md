@@ -77,9 +77,14 @@ infra/
 │                ECR / RDS MySQL / SSM(비밀번호·JWT) / IAM 역할 2종
 │                ALB + 타깃그룹 + 리스너 / ECS 클러스터·태스크정의·서비스
 │                S3 + CloudFront (OAC, /api/* → ALB 프록시)
+│                GitHub Actions OIDC 공급자 + 배포 역할 (baseball-github-actions)
 └── .gitignore   .terraform/, *.tfstate, *.tfvars 제외 (state 에 비밀값 포함)
 ```
-- **배포·정리 절차는 `docs/aws/07-deploy-runbook.md`** (트러블슈팅 기록 포함)
+- **배포·정리 절차는 `docs/aws/07-deploy-runbook.md`** (CD 설정·트러블슈팅 기록 포함)
+- **CD: `main` 푸시 → `.github/workflows/cd.yml`** (OIDC → 빌드 → ECR push → ECS 롤링 배포, 약 6분)
+  - 저장소 변수 `AWS_ROLE_ARN` 필요 (Secrets 아님 — 역할 ARN 은 비밀이 아님)
+  - 이미지 태그는 커밋 SHA. 태스크 정의 구조는 Terraform, 이미지 태그는 CD 담당
+  - 신뢰 정책 `sub` 조건은 `refs/heads/main` 으로 고정 — 느슨하게 두면 다른 브랜치·PR 에서도 배포 가능
 - 프론트는 `VITE_API_URL` 없이 빌드 → `/api` 상대경로 → CloudFront가 ALB로 프록시 (동일 오리진)
 - 요금: RDS+ALB+Fargate 약 100원/시간 → **작업 후 `terraform destroy` 필수**
 - 실행: `terraform init` → `plan` → `apply` / 정리: `terraform destroy`
@@ -272,7 +277,7 @@ docker-compose up --build
   - [x] ECR (lifecycle 최근 5개) / RDS MySQL(프라이빗, utf8mb4) / SSM SecureString / IAM 역할 2종
   - [x] ALB + 타깃그룹(`/actuator/health`) / ECS Fargate 서비스
   - [x] S3 + CloudFront (OAC, SPA 403·404 → index.html, `/api/*` → ALB 프록시)
-- [ ] GitHub Actions OIDC 기반 CD (ECR push → ECS 롤링 배포)
+- [x] **GitHub Actions OIDC 기반 CD** (`cd.yml` — 액세스 키 없이 임시 자격증명, ECR push → ECS 롤링 배포, 헬스체크 통과까지 대기)
 - [ ] 도메인 + ACM 인증서 (현재는 CloudFront 기본 도메인)
 - [ ] Redis 캐싱 (순위·경기 데이터 DB 캐시 → Redis TTL 캐시)
 - [ ] 소셜 로그인 (카카오/구글 OAuth2)
