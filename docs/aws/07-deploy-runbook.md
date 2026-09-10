@@ -121,6 +121,33 @@ terraform destroy
 
 **작업이 끝나면 반드시 실행한다.** RDS·ALB·Fargate는 시간당 과금이고, RDS 스토리지는 인스턴스를 꺼도 나간다.
 
+### ECR은 남는다 (의도된 동작)
+
+`destroy` 는 **이미지가 든 ECR 리포지토리를 지우지 않는다.**
+
+```
+Error: ECR Repository (baseball-recommend-backend) not empty, consider using force_delete
+```
+
+37개 중 36개가 지워지고 ECR 하나만 남는다. 안전장치이므로 실패로 보지 않는다.
+
+**남겨두는 쪽을 권장한다.** 이미지 약 138MB → **월 20원 정도**이고, 다음에 다시 올릴 때 10분짜리 Docker 빌드·푸시를 건너뛸 수 있다.
+
+정말 지우려면 `aws_ecr_repository.backend` 에 `force_delete = true` 를 넣고 `apply` → `destroy`.
+운영 환경에서는 쓰지 않는다. 확인 없이 이미지를 전부 지운다.
+
+### 다 내려갔는지 확인
+
+시간당 과금이 붙는 셋만 보면 된다.
+
+```bash
+aws elbv2 describe-load-balancers --query 'LoadBalancers[].LoadBalancerName' --output text
+aws rds describe-db-instances --query 'DBInstances[].DBInstanceIdentifier' --output text
+aws ecs list-clusters --query 'clusterArns' --output text
+```
+
+셋 다 빈 줄이면 시간당 과금은 0원이다. `terraform state list` 에 `aws_ecr_repository.backend` 만 남아 있으면 정상이다.
+
 ---
 
 ## 비용 (서울 리전, 대략)
@@ -207,7 +234,15 @@ aws ecs describe-services --cluster baseball-cluster --services baseball-backend
 | RDS, EBS 볼륨, S3 버킷 등 **상태를 담는 것** | 멈추고 확인. 데이터가 날아간다 |
 | 태스크 정의, 보안그룹 규칙 등 **정의만 담는 것** | 정상. 태스크 정의는 원래 불변이라 새 리비전을 만드는 게 정상 동작 |
 
-### 7. 기타
+### 7. `RepositoryNotEmptyException` (destroy 실패)
+
+**증상**: `terraform destroy` 가 36개는 지우고 ECR 하나에서 멈춤.
+
+**원인**: 이미지가 남아 있는 ECR 리포지토리는 삭제를 거부한다. 실수로 이미지를 날리는 것을 막는 안전장치다.
+
+**조치**: 남겨둔다 (월 20원, 다음 배포 때 빌드 생략). 지우려면 `force_delete = true` → `apply` → `destroy`. 위 **내리기** 절 참고.
+
+### 8. 기타
 
 | 증상 | 원인 |
 |---|---|
