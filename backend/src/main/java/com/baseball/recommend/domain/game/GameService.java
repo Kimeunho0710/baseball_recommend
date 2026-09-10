@@ -11,6 +11,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -105,6 +106,7 @@ public class GameService {
     // ─────────────────────────────────────────────
 
     @Scheduled(initialDelay = 90_000, fixedDelay = 30 * 60_000)
+    @SchedulerLock(name = "game-refresh", lockAtMostFor = "PT10M", lockAtLeastFor = "PT1M")
     public void scheduledRefresh() {
         log.info("[스케줄] 경기 일정 갱신 시작");
         List<GameDto> games = fetchCurrentMonths();

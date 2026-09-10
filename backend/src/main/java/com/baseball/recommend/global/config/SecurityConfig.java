@@ -29,6 +29,8 @@ public class SecurityConfig {
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // 헬스체크는 인증 없이 열어둔다 (docker healthcheck / ALB Target Group / CloudWatch)
+                .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                 .requestMatchers("/api/auth/signup", "/api/auth/login",
                         "/api/auth/refresh", "/api/auth/logout").permitAll()
                 .requestMatchers("/api/auth/me/**").authenticated()

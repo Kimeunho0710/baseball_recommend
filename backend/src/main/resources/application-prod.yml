@@ -4,10 +4,13 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
 
 jwt:
   secret: ${JWT_SECRET}
 
-gemini:
-  api:
-    key: ${GEMINI_API_KEY:}
+app:
+  cors:
+    # 운영: CloudFront 배포 도메인만 허용 (예: https://d123abc.cloudfront.net)
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}

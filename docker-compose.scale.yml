@@ -1,3 +1,12 @@
+# ShedLock 실험용 compose 파일
+#
+#   docker compose -f docker-compose.scale.yml up --build --scale backend=2
+#
+# docker-compose.yml 과 다른 점은 하나뿐이다: backend 의 ports 매핑이 없다.
+# 호스트 포트를 고정 매핑하면 컨테이너를 2개로 늘릴 때 8080 포트가 충돌해서 뜨지 않는다.
+# 이 실험의 목적은 브라우저 접속이 아니라 "두 인스턴스 중 어느 쪽이 스케줄러를 실행하는가"를
+# 로그로 확인하는 것이므로 포트를 열 필요가 없다.
+
 services:
   mysql:
     image: mysql:8.0
@@ -24,24 +33,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:-baseball-recommend-jwt-secret-key-for-docker-dev-only-min-32-chars!!}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
       TZ: Asia/Seoul
-    ports:
-      - "8080:8080"
     depends_on:
       mysql:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/actuator/health"]
-      interval: 30s
-      timeout: 5s
-      start_period: 60s
-      retries: 3
-
-  frontend:
-    build: ./frontend
-    ports:
-      - "3000:80"
-    depends_on:
-      backend:
         condition: service_healthy
 
 volumes:

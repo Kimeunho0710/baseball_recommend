@@ -8,6 +8,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -73,6 +74,7 @@ public class StandingService {
     }
 
     @Scheduled(initialDelay = 60_000, fixedDelay = 30 * 60_000)
+    @SchedulerLock(name = "standing-refresh", lockAtMostFor = "PT10M", lockAtLeastFor = "PT1M")
     @Transactional
     public void scheduledRefresh() {
         log.info("[스케줄] KBO 순위 갱신 시작");
