@@ -72,13 +72,19 @@ frontend/src/
 ## 인프라 (Terraform)
 ```
 infra/
-├── main.tf      provider(ap-northeast-2) / VPC(10.0.0.0/16) / 서브넷 4개(2 AZ)
-│                IGW / 퍼블릭 라우팅 테이블 / 보안그룹 3개(alb·ecs·rds)
+├── main.tf      VPC / 서브넷 4개(2 AZ) / IGW / 라우팅 테이블
+│                보안그룹 3계층 (ALB → ECS → RDS, SG 참조 방식)
+│                ECR / RDS MySQL / SSM(비밀번호·JWT) / IAM 역할 2종
+│                ALB + 타깃그룹 + 리스너 / ECS 클러스터·태스크정의·서비스
+│                S3 + CloudFront (OAC, /api/* → ALB 프록시)
 └── .gitignore   .terraform/, *.tfstate, *.tfvars 제외 (state 에 비밀값 포함)
 ```
+- **배포·정리 절차는 `docs/aws/07-deploy-runbook.md`** (트러블슈팅 기록 포함)
+- 프론트는 `VITE_API_URL` 없이 빌드 → `/api` 상대경로 → CloudFront가 ALB로 프록시 (동일 오리진)
+- 요금: RDS+ALB+Fargate 약 100원/시간 → **작업 후 `terraform destroy` 필수**
 - 실행: `terraform init` → `plan` → `apply` / 정리: `terraform destroy`
 - **state 파일은 절대 커밋하지 않는다** (DB 비밀번호 등 평문 포함)
-- 문서: `docs/aws/` — 00 이관준비 / 01 아키텍처 명세 / 02 실습과제 / 03 Terraform 기초 / 04 단계별 가이드 / 05 맥 초기설정 / 06 네트워크 개념
+- 문서: `docs/aws/` — 00 이관준비 / 01 아키텍처 명세 / 02 실습과제 / 03 Terraform 기초 / 04 단계별 가이드 / 05 맥 초기설정 / 06 네트워크 개념 / 07 배포 런북
 
 ## API 엔드포인트
 | Method | URL | 인증 | 설명 |
@@ -260,10 +266,14 @@ docker-compose up --build
 - [x] Claude API 연동 (`ClaudeApiClient` — claude-haiku-4-5, 코치 채팅 2순위)
 - [x] Gemini AI API 연동 (`GeminiClient` — gemini-2.0-flash-lite, 추천 이유/팬 프로필 텍스트 생성 + 코치 채팅 3순위)
 - [x] AWS 이관 준비 — Actuator 헬스체크 / ShedLock 스케줄러 락 / Flyway 마이그레이션 / CORS 화이트리스트 (`docs/aws/00-migration-prep.md`)
-- [ ] AWS 인프라 구축 (ECR/ECS Fargate + ALB + RDS + S3/CloudFront, Terraform — `docs/aws/01-architecture.md`)
-  - [x] VPC / 서브넷 4개(2 AZ) / IGW / 퍼블릭 라우팅 테이블 + 연결 (`infra/main.tf`)
-  - [x] 보안그룹 3개 — ALB(80,443) → ECS(8080) → RDS(3306), 소스를 CIDR 대신 SG 참조로 지정
-  - [ ] 다음: ECR → RDS → ECS Fargate → ALB → S3/CloudFront
+- [x] **AWS 인프라 구축 완료** — CloudFront → (S3 / ALB → ECS Fargate → RDS), 전부 Terraform 관리
+  - [x] VPC / 서브넷 4개(2 AZ) / IGW / 라우팅 테이블
+  - [x] 보안그룹 3계층 — ALB(80,443) → ECS(8080) → RDS(3306), CIDR 대신 SG 참조
+  - [x] ECR (lifecycle 최근 5개) / RDS MySQL(프라이빗, utf8mb4) / SSM SecureString / IAM 역할 2종
+  - [x] ALB + 타깃그룹(`/actuator/health`) / ECS Fargate 서비스
+  - [x] S3 + CloudFront (OAC, SPA 403·404 → index.html, `/api/*` → ALB 프록시)
+- [ ] GitHub Actions OIDC 기반 CD (ECR push → ECS 롤링 배포)
+- [ ] 도메인 + ACM 인증서 (현재는 CloudFront 기본 도메인)
 - [ ] Redis 캐싱 (순위·경기 데이터 DB 캐시 → Redis TTL 캐시)
 - [ ] 소셜 로그인 (카카오/구글 OAuth2)
 - [x] 결과 공유 기능 (카카오톡 공유 + 링크 복사, 결과 페이지)
