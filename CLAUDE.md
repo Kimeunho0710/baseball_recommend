@@ -78,7 +78,8 @@ infra/
 │                ALB + 타깃그룹 + 리스너 / ECS 클러스터·태스크정의·서비스
 │                S3 + CloudFront (OAC, /api/* → ALB 프록시)
 │                GitHub Actions OIDC 공급자 + 배포 역할 (baseball-github-actions)
-└── .gitignore   .terraform/, *.tfstate, *.tfvars 제외 (state 에 비밀값 포함)
+│                SNS 주제 + CloudWatch 알람 4종 (5xx / 비정상타깃 / RDS스토리지 / ECS메모리)
+└── .gitignore   .terraform/, *.tfstate, *.tfvars 제외 (state·tfvars 에 비밀값·개인정보 포함)
 ```
 - **배포·정리 절차는 `docs/aws/07-deploy-runbook.md`** (CD 설정·트러블슈팅 기록 포함)
 - **CD: `main` 푸시 → `.github/workflows/cd.yml`** (OIDC → 빌드 → ECR push → ECS 롤링 배포, 약 6분)
@@ -92,6 +93,11 @@ infra/
   - 버저닝·암호화·퍼블릭 차단 적용. 잠금은 `use_lockfile = true` (S3 네이티브, Terraform 1.10+)
   - **state 버킷은 `destroy` 대상이 아님** — Terraform 관리 밖에서 CLI 로 생성 (자기 state 를 지우는 것을 방지)
   - 백엔드 블록은 커밋 O / **state 파일 자체는 절대 커밋하지 않는다** (DB 비밀번호 등 평문 포함)
+- **모니터링: CloudWatch 알람 4종 → SNS → 이메일** (`docs/aws/07-deploy-runbook.md` 모니터링 절)
+  - 증상 기반(5xx, 비정상 타깃) + 예방(RDS 스토리지, ECS 메모리). 알람은 적게 — 울려도 안 보는 알람이 최악
+  - `treat_missing_data = "notBreaching"` 필수 — destroy 하면 지표가 사라지므로
+  - **SNS 이메일 구독은 확인 메일 클릭 필요** (Terraform 으로 자동화 불가)
+  - 이메일 주소는 `infra/terraform.tfvars` (gitignore)
 - 문서: `docs/aws/` — 00 이관준비 / 01 아키텍처 명세 / 02 실습과제 / 03 Terraform 기초 / 04 단계별 가이드 / 05 맥 초기설정 / 06 네트워크 개념 / 07 배포 런북
 
 ## API 엔드포인트
@@ -283,7 +289,7 @@ docker-compose up --build
 - [x] **GitHub Actions OIDC 기반 CD** (`cd.yml` — 액세스 키 없이 임시 자격증명, ECR push → ECS 롤링 배포, 헬스체크 통과까지 대기)
 - [ ] 도메인 + ACM 인증서 (현재는 CloudFront 기본 도메인)
 - [x] **Terraform state 원격화** (S3 + 버저닝·암호화, `use_lockfile` 네이티브 잠금 — 로컬 단일 장애점 제거)
-- [ ] CloudWatch 알람 + SNS 알림 (장애 인지 경로)
+- [x] **CloudWatch 알람 + SNS 알림** (증상 기반 2종 + 예방 2종, `set-alarm-state` 로 전달 경로·복구 알림까지 검증)
 - [ ] Redis 캐싱 (순위·경기 데이터 DB 캐시 → Redis TTL 캐시)
 - [ ] 소셜 로그인 (카카오/구글 OAuth2)
 - [x] 결과 공유 기능 (카카오톡 공유 + 링크 복사, 결과 페이지)

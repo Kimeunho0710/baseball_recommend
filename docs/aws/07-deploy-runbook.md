@@ -83,10 +83,16 @@ apply 중에는 `.tflock` 파일이 생기고, 다른 실행은 `Error acquiring
 
 ```bash
 cd ~/dev/baseball_recommend/infra
-terraform apply
+terraform plan -out=tfplan
+terraform apply tfplan
 ```
 
 RDS 5~10분, CloudFront 5~15분. 전체 15~25분.
+
+저장된 plan 을 적용하면 **확인 프롬프트가 없고, 검토한 그대로만** 실행된다.
+`-out` 없이 `apply` 하면 Terraform 이 다시 계산하므로 방금 본 것과 달라질 수 있다 (CI/CD 가 `-out` 을 쓰는 이유).
+
+⚠️ `tfplan` 에는 DB 비밀번호·JWT 시크릿이 들어있다. **적용 후 `rm tfplan`.**
 
 ### 2. 백엔드 이미지
 
@@ -252,6 +258,76 @@ lifecycle {
 
 ---
 
+## 모니터링 (CloudWatch 알람 + SNS)
+
+```
+CloudWatch 알람 ──▶ SNS 주제(baseball-alerts) ──▶ 이메일
+```
+
+알람이 이메일 주소를 직접 알지 않는다. SNS 에 던지고 구독자가 받아간다.
+Slack·Lambda·SMS 를 추가해도 알람 정의는 건드릴 필요가 없다.
+
+### 거는 알람 (4개)
+
+| 알람 | 지표 | 조건 | 성격 |
+|---|---|---|---|
+| `baseball-alb-5xx` | `HTTPCode_Target_5XX_Count` | 5분간 5건 이상 | 증상 — 사용자가 실제로 에러를 겪는 중 |
+| `baseball-alb-unhealthy-target` | `UnHealthyHostCount` | 60초 × 3회 연속 1개 이상 | 증상 — 컨테이너 헬스체크 실패 |
+| `baseball-rds-low-storage` | `FreeStorageSpace` | 2GB 미만 | 예방 — 디스크가 차면 DB 가 멈춘다 |
+| `baseball-ecs-high-memory` | `MemoryUtilization` | 5분 × 2회 85% 초과 | 예방 — OOM 직전 신호 |
+
+**알람은 적을수록 좋다.** 기준은 "이게 울리면 지금 일어나서 뭔가 해야 하나?" — 아니면 알람이 아니라 대시보드 항목이다.
+RDS CPU 는 뺐다. 높아도 응답이 정상이면 장애가 아니다(원인 기반 지표).
+
+`period × evaluation_periods` 가 예민함을 정한다. 한 번만 넘어도 울리게 하면 **배포할 때마다 알람이 온다** → 사람이 무시하게 된다.
+
+### 공통 설정
+
+```hcl
+alarm_actions      = [aws_sns_topic.alerts.arn]
+ok_actions         = [aws_sns_topic.alerts.arn]
+treat_missing_data = "notBreaching"
+```
+
+- `ok_actions` — 복구됐을 때도 알린다. 없으면 언제 정상으로 돌아왔는지 모른다
+- `treat_missing_data = "notBreaching"` — **이 구성에서 특히 중요.** `destroy` 하면 지표가 사라지는데, 기본값이면 알람이 `INSUFFICIENT_DATA` 로 남거나 잘못 울린다. "데이터 없음 = 정상" 으로 둬야 destroy/apply 사이클과 맞는다
+
+### 이메일 주소
+
+`infra/terraform.tfvars` (gitignore 대상) 에 둔다.
+
+```hcl
+alert_email = "..."
+```
+
+`variable` 에 `default` 로 박으면 동작은 하지만 개인 이메일이 저장소에 커밋된다.
+
+⚠️ **SNS 이메일 구독은 사람이 확인 메일을 클릭해야 활성화된다.** Terraform 으로 만들면 `PendingConfirmation` 상태로 생긴다. 자동화할 수 없는 지점(스팸 방지).
+네이버 메일은 스팸함에 걸리는 경우가 있다.
+
+```bash
+aws sns list-subscriptions \
+  --query 'Subscriptions[?contains(TopicArn,`baseball-alerts`)].[Endpoint,SubscriptionArn]' --output text
+```
+
+`PendingConfirmation` 이 아니라 실제 ARN 이면 활성화됐다.
+
+### 전달 경로 검증 — 반드시 한다
+
+설정만 하고 검증하지 않으면 정작 장애 때 안 온다.
+
+```bash
+aws cloudwatch set-alarm-state --alarm-name baseball-alb-5xx \
+  --state-value ALARM --state-reason "알람 전달 경로 테스트"
+```
+
+지표와 무관하게 상태를 강제로 바꾼다 → `alarm_actions` 실행 → 메일.
+실제 5xx 가 없으므로 다음 평가 주기에 `OK` 로 되돌아가며 `ok_actions` 로 한 통 더 온다. **두 통이 오면 복구 알림까지 동작하는 것.**
+
+이 테스트가 검증하는 것은 **전달 경로뿐**이다. 임계값이 적절한지, 지표 차원이 올바른지는 실제 트래픽에서만 드러난다. 처음 한 달은 임계값을 조정하는 기간으로 본다.
+
+---
+
 ## 내리기
 
 ```bash
@@ -351,11 +427,28 @@ aws ecs describe-services --cluster baseball-cluster --services baseball-backend
 
 **증상**: `terraform plan` 이 잠금 오류로 거부됨.
 
-**원인**: 다른 터미널에서 `terraform apply` 가 진행 중 (RDS 생성은 5~10분 걸린다).
+**원인**: 둘 중 하나다.
+1. 다른 터미널에서 `terraform apply` 가 진행 중 (RDS 생성은 5~10분)
+2. **`Ctrl+C` 로 끊은 plan/apply 가 잠금을 남김** — 원격 백엔드로 옮긴 뒤 자주 만난다
 
-**조치**: `ps aux | grep '[t]erraform'` 으로 확인 → **프로세스가 살아있으면 기다린다.** 죽었을 때만 `terraform force-unlock <ID>`.
+**판단**: `ps aux | grep '[t]erraform'` — 다만 **무엇이 보이는지**를 봐야 한다.
 
-⚠️ **실행 중인데 force-unlock 하면 state가 깨진다.** AWS에는 리소스가 만들어졌는데 state에 없는 "유령 리소스"가 되어 요금만 계속 나간다.
+| 보이는 것 | 판단 |
+|---|---|
+| `terraform plan` / `terraform apply` (본체) | 🔴 살아있음. **기다린다** |
+| `terraform-provider-*` 만 | 🟢 고아 프로세스. 잠금을 풀 능력이 없으므로 `force-unlock` 가능 |
+
+Terraform 은 프로바이더를 별도 프로세스로 띄우고 gRPC 로 통신한다. 중간에 끊기면 프로바이더만 고아로 남는다.
+
+```bash
+kill $(pgrep -f 'terraform-provider') 2>/dev/null
+terraform force-unlock <ID>
+```
+
+⚠️ **본체가 실행 중인데 force-unlock 하면 state가 깨진다.** AWS에는 리소스가 만들어졌는데 state에 없는 "유령 리소스"가 되어 요금만 계속 나간다.
+
+**예방**: `Ctrl+C` 는 **한 번만** 누르고 "Gracefully shutting down..." 이 끝날 때까지 기다린다. 두 번 누르거나 창을 닫으면 잠금이 남는다.
+`terraform plan | grep ...` 처럼 파이프로 묶으면 진행 상황이 안 보여 멈춘 것처럼 느껴진다 → `terraform plan -no-color > /tmp/plan.txt` 후 파일을 grep 한다.
 
 ### 5. `plan` 만 하고 `apply` 를 안 함
 
