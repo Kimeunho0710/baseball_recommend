@@ -23,6 +23,60 @@ CloudFront ─┬─ /*      → S3 (Vue 정적, OAC)
 
 ---
 
+## Terraform state (원격 백엔드)
+
+state 는 S3 에 있다. `infra/main.tf` 의 `backend "s3"` 블록이 가리킨다.
+
+```
+s3://baseball-tfstate-273144883894/baseball/terraform.tfstate
+```
+
+**이 버킷은 `terraform destroy` 대상이 아니다.** Terraform 관리 밖에 두고 AWS CLI 로 한 번 만들었다.
+같은 구성에 넣으면 `destroy` 가 자기 state 를 담은 버킷을 지우려 든다.
+
+### 버킷을 다시 만들어야 할 때 (계정 이전 등)
+
+```bash
+export TFSTATE_BUCKET="baseball-tfstate-273144883894"
+
+aws s3api create-bucket --bucket "${TFSTATE_BUCKET}" --region ap-northeast-2 \
+  --create-bucket-configuration LocationConstraint=ap-northeast-2
+
+aws s3api put-bucket-versioning --bucket "${TFSTATE_BUCKET}" \
+  --versioning-configuration Status=Enabled
+
+aws s3api put-bucket-encryption --bucket "${TFSTATE_BUCKET}" \
+  --server-side-encryption-configuration '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
+
+aws s3api put-public-access-block --bucket "${TFSTATE_BUCKET}" \
+  --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+```
+
+그다음 `terraform init -migrate-state` → `yes`.
+
+| 설정 | 이유 |
+|---|---|
+| **버저닝** | state 가 잘못 덮어써졌을 때 되돌릴 유일한 수단. **없이 원격화하면 오히려 위험하다** |
+| 암호화 | state 에 DB 비밀번호·JWT 시크릿이 평문으로 들어있다 |
+| 퍼블릭 차단 | 같은 이유 |
+
+### 잠금
+
+`use_lockfile = true` — S3 조건부 쓰기를 이용한 Terraform 자체 잠금 (1.10+). 별도 리소스가 없다.
+apply 중에는 `.tflock` 파일이 생기고, 다른 실행은 `Error acquiring the state lock` 으로 거부된다.
+
+로컬 state 시절의 잠금은 이 맥 안에서만 유효했다. 지금은 다른 사람·다른 컴퓨터·CI 까지 전부 막힌다.
+
+> 예전 방식은 잠금 전용 DynamoDB 테이블(`dynamodb_table`)이었다. 1.10 부터 S3 네이티브 잠금으로 대체됐고 DynamoDB 방식은 폐기 예정. 기존 코드베이스에는 아직 많이 남아 있다.
+
+### 주의
+
+- **백엔드 블록에는 변수를 쓸 수 없다.** Terraform 이 변수를 계산하기 전에 state 를 읽어야 하므로 값을 직접 적는다
+- 백엔드 블록 자체는 커밋한다 (버킷 이름·경로뿐, 비밀 없음). state 파일은 계속 `.gitignore` 대상
+- 로컬에 남은 `terraform.tfstate` 는 마이그레이션 백업일 뿐 더 이상 읽히지 않는다
+
+---
+
 ## 올리기
 
 ### 1. 인프라

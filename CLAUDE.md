@@ -88,7 +88,10 @@ infra/
 - 프론트는 `VITE_API_URL` 없이 빌드 → `/api` 상대경로 → CloudFront가 ALB로 프록시 (동일 오리진)
 - 요금: RDS+ALB+Fargate 약 100원/시간 → **작업 후 `terraform destroy` 필수**
 - 실행: `terraform init` → `plan` → `apply` / 정리: `terraform destroy`
-- **state 파일은 절대 커밋하지 않는다** (DB 비밀번호 등 평문 포함)
+- **state 는 S3 원격 백엔드** — `s3://baseball-tfstate-273144883894/baseball/terraform.tfstate`
+  - 버저닝·암호화·퍼블릭 차단 적용. 잠금은 `use_lockfile = true` (S3 네이티브, Terraform 1.10+)
+  - **state 버킷은 `destroy` 대상이 아님** — Terraform 관리 밖에서 CLI 로 생성 (자기 state 를 지우는 것을 방지)
+  - 백엔드 블록은 커밋 O / **state 파일 자체는 절대 커밋하지 않는다** (DB 비밀번호 등 평문 포함)
 - 문서: `docs/aws/` — 00 이관준비 / 01 아키텍처 명세 / 02 실습과제 / 03 Terraform 기초 / 04 단계별 가이드 / 05 맥 초기설정 / 06 네트워크 개념 / 07 배포 런북
 
 ## API 엔드포인트
@@ -279,6 +282,8 @@ docker-compose up --build
   - [x] S3 + CloudFront (OAC, SPA 403·404 → index.html, `/api/*` → ALB 프록시)
 - [x] **GitHub Actions OIDC 기반 CD** (`cd.yml` — 액세스 키 없이 임시 자격증명, ECR push → ECS 롤링 배포, 헬스체크 통과까지 대기)
 - [ ] 도메인 + ACM 인증서 (현재는 CloudFront 기본 도메인)
+- [x] **Terraform state 원격화** (S3 + 버저닝·암호화, `use_lockfile` 네이티브 잠금 — 로컬 단일 장애점 제거)
+- [ ] CloudWatch 알람 + SNS 알림 (장애 인지 경로)
 - [ ] Redis 캐싱 (순위·경기 데이터 DB 캐시 → Redis TTL 캐시)
 - [ ] 소셜 로그인 (카카오/구글 OAuth2)
 - [x] 결과 공유 기능 (카카오톡 공유 + 링크 복사, 결과 페이지)
