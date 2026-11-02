@@ -89,7 +89,7 @@ infra/
 - 프론트는 `VITE_API_URL` 없이 빌드 → `/api` 상대경로 → CloudFront가 ALB로 프록시 (동일 오리진)
 - 요금: RDS+ALB+Fargate 약 100원/시간 → **작업 후 `terraform destroy` 필수**
 - 실행: `terraform init` → `plan` → `apply` / 정리: `terraform destroy`
-- **state 는 S3 원격 백엔드** — `s3://baseball-tfstate-273144883894/baseball/terraform.tfstate`
+- **state 는 S3 원격 백엔드** — `s3://baseball-tfstate-<account-id>/baseball/terraform.tfstate`
   - 버저닝·암호화·퍼블릭 차단 적용. 잠금은 `use_lockfile = true` (S3 네이티브, Terraform 1.10+)
   - **state 버킷은 `destroy` 대상이 아님** — Terraform 관리 밖에서 CLI 로 생성 (자기 state 를 지우는 것을 방지)
   - 백엔드 블록은 커밋 O / **state 파일 자체는 절대 커밋하지 않는다** (DB 비밀번호 등 평문 포함)

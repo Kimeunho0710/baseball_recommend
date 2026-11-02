@@ -28,7 +28,7 @@ CloudFront ─┬─ /*      → S3 (Vue 정적, OAC)
 state 는 S3 에 있다. `infra/main.tf` 의 `backend "s3"` 블록이 가리킨다.
 
 ```
-s3://baseball-tfstate-273144883894/baseball/terraform.tfstate
+s3://baseball-tfstate-<account-id>/baseball/terraform.tfstate
 ```
 
 **이 버킷은 `terraform destroy` 대상이 아니다.** Terraform 관리 밖에 두고 AWS CLI 로 한 번 만들었다.
@@ -37,7 +37,8 @@ s3://baseball-tfstate-273144883894/baseball/terraform.tfstate
 ### 버킷을 다시 만들어야 할 때 (계정 이전 등)
 
 ```bash
-export TFSTATE_BUCKET="baseball-tfstate-273144883894"
+export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+export TFSTATE_BUCKET="baseball-tfstate-${ACCOUNT_ID}"
 
 aws s3api create-bucket --bucket "${TFSTATE_BUCKET}" --region ap-northeast-2 \
   --create-bucket-configuration LocationConstraint=ap-northeast-2
@@ -144,7 +145,8 @@ npm run build
 `VITE_API_URL` 은 **주지 않는다.** 미설정 시 `http.js` 가 `/api` 를 쓰고, 그게 CloudFront 프록시 경로다.
 
 ```bash
-export BUCKET="baseball-recommend-frontend-273144883894"
+export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+export BUCKET="baseball-recommend-frontend-${ACCOUNT_ID}"
 
 aws s3 sync dist/ "s3://${BUCKET}/" --delete \
   --exclude "index.html" \
